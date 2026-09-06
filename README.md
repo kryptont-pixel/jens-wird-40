@@ -10,7 +10,7 @@ Produktionsreife, deutschsprachige Website für Jens’ 40. Geburtstag am 10.10.
 - lokal im Browser erzeugte WebP-Vorschauen mit berücksichtigter Bildausrichtung; Video-Poster, wenn der Browser das Video dekodieren kann
 - private Originale, UUID-Pfade, serverseitige MIME-/Größenprüfung vor der Freigabe und Kontrolle des tatsächlich gespeicherten Objekts
 - Netlify Blobs für Medien-Metadaten, Upload-Sitzungen, Rate Limits und Gästebuch
-- Turnstile-Prüfung auf dem Server, Rate Limiting, XSS-Bereinigung und verständliche deutsche Fehlertexte
+- Rate Limiting, XSS-Bereinigung und verständliche deutsche Fehlertexte
 - serverseitig geschützter Adminbereich mit sechsstelliger PIN, signierten HttpOnly-Sitzungen, Auswahl, Löschung, Originalansicht und Downloads
 - `noindex`, `nofollow`, `robots.txt`, Sicherheits-Header und kein öffentlicher Schreibzugriff auf den Bucket
 - tägliche Bereinigung abgelaufener Upload-Sitzungen; zusätzliche Bucket-Lifecycle-Regel für unvollständige Multipart-Uploads
@@ -44,6 +44,8 @@ VITE_MEDIA_STORAGE=netlify
 
 Danach neu deployen. Bilder und Videos werden dann in Netlify Blobs gespeichert und dürfen im Testbetrieb höchstens 20 MB groß sein. Die Function-Anfragen werden intern in 4-MB-Teile aufgeteilt. Für die Feier sollten beide Werte wieder auf `hetzner` gestellt und anschließend erneut deployt werden, weil der Hetzner-Weg die vorgesehenen 50 MB für Bilder und 2 GB für Videos unterstützt.
 
+Ein externer Bot-Schutz ist bewusst nicht aktiviert. Uploads und Gästebuch bleiben weiterhin über serverseitiges Rate Limiting begrenzt.
+
 ## 2. Hetzner-Projekt und privaten Bucket erstellen
 
 1. In der Hetzner Console ein Projekt anlegen oder auswählen.
@@ -72,15 +74,7 @@ Die Datei [docs/hetzner-lifecycle.json](docs/hetzner-lifecycle.json) bricht unvo
 aws s3api put-bucket-lifecycle-configuration --bucket IHR_BUCKET --lifecycle-configuration file://docs/hetzner-lifecycle.json --endpoint-url https://nbg1.your-objectstorage.com --region nbg1
 ```
 
-## 3. Cloudflare Turnstile einrichten
-
-1. In Cloudflare ein Turnstile-Widget für die endgültige Website-Domain anlegen.
-2. Den öffentlichen Site Key als `VITE_TURNSTILE_SITE_KEY` speichern.
-3. Den geheimen Secret Key nur serverseitig als `TURNSTILE_SECRET_KEY` in Netlify speichern.
-
-`ALLOW_TEST_BYPASS=true` ist ausschließlich für lokale automatisierte Tests vorgesehen und darf in Produktion niemals aktiv sein.
-
-## 4. Admin-PIN konfigurieren
+## 3. Admin-PIN konfigurieren
 
 Der Adminbereich benötigt nur eine sechsstellige PIN und keinen Benutzernamen. Der Hash wird lokal erzeugt, ohne die PIN ins Repository zu schreiben:
 
@@ -90,7 +84,7 @@ node scripts/hash-pin.mjs
 
 Den ausgegebenen bcrypt-Hash in `ADMIN_PIN_HASH` eintragen. `SESSION_SECRET` muss eine lange, zufällige Zeichenfolge sein, idealerweise mindestens 32 zufällige Bytes. PIN und Secrets niemals in Chat, Screenshots oder Supportnachrichten zeigen.
 
-## 5. Netlify mit GitHub verbinden und deployen
+## 4. Netlify mit GitHub verbinden und deployen
 
 1. Dieses Projekt in ein privates GitHub-Repository übertragen.
 2. In Netlify **Add new project → Import an existing project** wählen und GitHub verbinden.
@@ -105,14 +99,12 @@ Den ausgegebenen bcrypt-Hash in `ADMIN_PIN_HASH` eintragen. `SESSION_SECRET` mus
 
 Nicht für jeden kleinen Test einen Produktions-Deploy auslösen. Änderungen zuerst lokal oder in einem Deploy Preview prüfen.
 
-## 6. Environment-Variablen
+## 5. Environment-Variablen
 
 | Variable | Sichtbarkeit | Bedeutung |
 |---|---|---|
 | `VITE_PUBLIC_SITE_URL` | öffentlich | endgültige Basis-URL der Website |
-| `VITE_TURNSTILE_SITE_KEY` | öffentlich | Turnstile Site Key |
 | `PUBLIC_SITE_URL` | serverseitig | dieselbe endgültige Basis-URL; Origin- und Hostprüfung |
-| `TURNSTILE_SECRET_KEY` | geheim/serverseitig | Turnstile Secret Key |
 | `MEDIA_STORAGE` | serverseitig | `netlify` für den temporären Testbetrieb oder `hetzner` für den produktiven Upload |
 | `VITE_MEDIA_STORAGE` | öffentlich | muss zum serverseitigen `MEDIA_STORAGE` passen |
 | `HETZNER_S3_REGION` | serverseitig | z. B. `nbg1` |
@@ -125,7 +117,7 @@ Nicht für jeden kleinen Test einen Produktions-Deploy auslösen. Änderungen zu
 
 Vite übernimmt ausschließlich Variablen mit dem Präfix `VITE_` in den Browser. Alle Secrets haben bewusst kein solches Präfix.
 
-## 7. Endgültige URL und QR-Code
+## 6. Endgültige URL und QR-Code
 
 Nach dem ersten erfolgreichen Netlify-Deploy dieselbe endgültige URL in `VITE_PUBLIC_SITE_URL` und `PUBLIC_SITE_URL` eintragen. Danach lokal:
 
@@ -159,7 +151,7 @@ Danach im Deploy Preview prüfen:
 3. Video über 64 MB als Multipart-Upload, einschließlich Netzunterbrechung/Wiederholung
 4. Upload-Abbruch und erneuten Versuch
 5. Galerie, Lazy Loading, Lightbox, Wischen und Video mit `preload="none"`
-6. Gästebuch, Zeichenlimit und Turnstile
+6. Gästebuch und Zeichenlimit
 7. Adminanmeldung per PIN, Sitzung nach Ablauf und Abmeldung
 8. Einzel- und Mehrfachdownload
 9. Einzel- und Mehrfachlöschung; danach prüfen, dass Original, Vorschau und Metadatum entfernt sind
