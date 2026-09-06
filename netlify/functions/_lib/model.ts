@@ -1,5 +1,6 @@
 export type MediaKind = "image" | "video";
-export type UploadMode = "single" | "multipart";
+export type StorageBackend = "hetzner" | "netlify";
+export type UploadMode = "single" | "multipart" | "netlify";
 
 export interface UploadSession {
   id: string;
@@ -13,6 +14,7 @@ export interface UploadSession {
   declaredSize: number;
   kind: MediaKind;
   mode: UploadMode;
+  storage?: StorageBackend;
   multipartUploadId: string | null;
   partSize: number | null;
   totalParts: number | null;
@@ -30,6 +32,7 @@ export interface MediaRecord {
   mimeType: string;
   size: number;
   kind: MediaKind;
+  storage?: StorageBackend;
   width?: number;
   height?: number;
   status: "ready";

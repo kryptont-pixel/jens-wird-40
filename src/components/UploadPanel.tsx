@@ -21,7 +21,7 @@ interface SignedPut { url: string; headers: Record<string, string>; expiresIn: n
 interface UploadSessionResponse {
   id: string;
   uploadToken: string;
-  mode: "single" | "multipart";
+  mode: "single" | "multipart" | "netlify";
   original: SignedPut | { partSize: number; parts: Array<{ partNumber: number; url: string }>; expiresIn: number };
   preview: SignedPut | null;
 }
@@ -35,10 +35,13 @@ function normalizedFile(file: File): File {
   return extension && inferred[extension] ? new File([file], file.name, { type: inferred[extension], lastModified: file.lastModified }) : file;
 }
 
+const netlifyStorage = import.meta.env.VITE_MEDIA_STORAGE === "netlify";
+const netlifyMaxBytes = 20 * 1024 * 1024;
+
 function clientError(file: File): string | null {
   if (!accepted.has(file.type)) return "Dieser Dateityp wird nicht unterstützt.";
-  const max = file.type.startsWith("image/") ? EVENT.maxImageBytes : EVENT.maxVideoBytes;
-  if (file.size > max) return `Zu groß – maximal ${file.type.startsWith("image/") ? "50 MB" : "2 GB"}.`;
+  const max = netlifyStorage ? netlifyMaxBytes : file.type.startsWith("image/") ? EVENT.maxImageBytes : EVENT.maxVideoBytes;
+  if (file.size > max) return `Zu groß – maximal ${netlifyStorage ? "20 MB im Netlify-Testbetrieb" : file.type.startsWith("image/") ? "50 MB" : "2 GB"}.`;
   if (file.size <= 0) return "Die Datei ist leer.";
   return null;
 }
@@ -84,7 +87,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
     try {
       update(item.id, { status: "uploading", progress: 2, error: undefined });
       if (preview && session.preview) {
-        await retry(() => putBlob(session.preview!.url, preview.blob, session.preview!.headers, controller.signal, (loaded, total) => update(item.id, { progress: 2 + Math.round((loaded / total) * 5) })));
+        await retry(() => putBlob(session.preview!.url, preview.blob, session.mode === "netlify" ? authHeaders : session.preview!.headers, controller.signal, (loaded, total) => update(item.id, { progress: 2 + Math.round((loaded / total) * 5) })));
       }
 
       let parts: Array<{ partNumber: number; etag: string }> | undefined;
@@ -104,7 +107,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
             const blob = item.file.slice(start, Math.min(item.file.size, start + signed.partSize));
             let currentUrl = part.url;
             const result = await retry(async (attempt) => {
-              if (attempt > 0) {
+              if (attempt > 0 && session.mode !== "netlify") {
                 const fresh = await api<{ url: string }>("upload-part", {
                   method: "POST",
                   headers: authHeaders,
@@ -112,7 +115,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
                 });
                 currentUrl = fresh.url;
               }
-              return putBlob(currentUrl, blob, {}, controller.signal, (value) => {
+              return putBlob(currentUrl, blob, session.mode === "netlify" ? authHeaders : {}, controller.signal, (value) => {
                 loaded.set(part.partNumber, value);
                 const totalLoaded = [...loaded.values()].reduce((sum, amount) => sum + amount, 0);
                 update(item.id, { progress: 7 + Math.round((totalLoaded / item.file.size) * 88) });
@@ -225,7 +228,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
           <button className="button button-primary" type="button" onClick={() => cameraRef.current?.click()}><Camera aria-hidden="true" /> Kamera öffnen</button>
           <button className="button button-secondary" type="button" onClick={() => inputRef.current?.click()}><ImagePlus aria-hidden="true" /> Dateien wählen</button>
         </div>
-        <small>Bilder bis 50 MB · Videos bis 2 GB</small>
+        <small>{netlifyStorage ? "Bilder und Videos bis 20 MB im Netlify-Testbetrieb" : "Bilder bis 50 MB · Videos bis 2 GB"}</small>
         <input ref={cameraRef} hidden type="file" accept="image/*,video/*" capture="environment" onChange={(event) => event.target.files && addFiles(event.target.files)} />
         <input ref={inputRef} hidden type="file" accept={acceptMime} multiple onChange={(event) => event.target.files && addFiles(event.target.files)} />
       </div>

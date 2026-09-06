@@ -8,6 +8,21 @@ import type { MediaKind } from "./model.js";
 
 export { EVENT };
 
+export const NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+export const NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
+
+export function mediaStorageBackend(): "hetzner" | "netlify" {
+  return process.env.MEDIA_STORAGE?.trim().toLowerCase() === "netlify" ? "netlify" : "hetzner";
+}
+
+export function netlifyPartCount(size: number): number {
+  return Math.ceil(size / NETLIFY_PART_BYTES);
+}
+
+export function netlifyBlobKey(kind: "original" | "preview", sessionId: string, partNumber = 1): string {
+  return `${kind}/${sessionId}/${partNumber}`;
+}
+
 const allowed = new Set<string>(ALLOWED_MIME_TYPES);
 const images = new Set<string>(IMAGE_MIME_TYPES);
 const videos = new Set<string>(VIDEO_MIME_TYPES);

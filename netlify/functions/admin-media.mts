@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getMedia, listMedia, mediaStore } from "./_lib/data.js";
+import { deleteNetlifyMedia, getMedia, listMedia, mediaStore } from "./_lib/data.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { requireAdmin } from "./_lib/security.js";
 import { deleteObjects, signDownload } from "./_lib/s3.js";
@@ -20,10 +20,10 @@ export default async (request: Request, _context: Context) => {
         status: item.status,
         width: item.width,
         height: item.height,
-        previewUrl: item.previewKey ? await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null,
-        viewUrl: item.kind === "video" ? await signDownload(item.originalKey, "inline", item.originalName) : null,
-        originalViewUrl: await signDownload(item.originalKey, "inline", item.originalName),
-        originalUrl: await signDownload(item.originalKey, "attachment", item.originalName),
+        previewUrl: item.previewKey ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=preview` : await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null,
+        viewUrl: item.kind === "video" ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=original` : await signDownload(item.originalKey, "inline", item.originalName) : null,
+        originalViewUrl: item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=original` : await signDownload(item.originalKey, "inline", item.originalName),
+        originalUrl: item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=original&download=1` : await signDownload(item.originalKey, "attachment", item.originalName),
       })));
       return json({ items });
     }
@@ -40,7 +40,8 @@ export default async (request: Request, _context: Context) => {
       try {
         const item = await getMedia(id);
         if (!item) continue;
-        await deleteObjects([item.originalKey, item.previewKey]);
+        if (item.storage === "netlify") await deleteNetlifyMedia(item);
+        else await deleteObjects([item.originalKey, item.previewKey]);
         await mediaStore().delete(id);
         deleted.push(id);
       } catch (error) {

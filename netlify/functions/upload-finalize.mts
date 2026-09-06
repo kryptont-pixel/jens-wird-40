@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
-import { mediaStore, getUploadSession, setUploadSession } from "./_lib/data.js";
-import { maxBytesFor } from "./_lib/config.js";
+import { deleteNetlifyUpload, mediaBinaryStore, mediaStore, getUploadSession, setUploadSession } from "./_lib/data.js";
+import { maxBytesFor, NETLIFY_MAX_FILE_BYTES, netlifyBlobKey } from "./_lib/config.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { requireUploadToken } from "./_lib/security.js";
 import { completeMultipart, deleteObjects, headObject } from "./_lib/s3.js";
@@ -42,20 +42,54 @@ export default async (request: Request, _context: Context) => {
       });
     }
 
-    const originalHead = await headObject(session.originalKey);
-    const actualSize = Number(originalHead.ContentLength ?? -1);
-    const actualType = originalHead.ContentType ?? "";
-    const owner = originalHead.Metadata?.["upload-session"];
-    if (actualSize !== session.declaredSize || actualSize > maxBytesFor(session.kind) || actualType !== session.mimeType || owner !== session.id) {
-      await deleteObjects([session.originalKey, session.previewKey]);
+    const isNetlify = session.storage === "netlify";
+    let actualSize = -1;
+    let actualType = "";
+    let owner = "";
+    if (isNetlify) {
+      if (!session.totalParts) throw new HttpError(400, "PARTS_MISSING", "Es fehlen Upload-Teile.");
+      const parts = await Promise.all(Array.from({ length: session.totalParts }, (_, index) => mediaBinaryStore().getWithMetadata(netlifyBlobKey("original", session.id, index + 1), { type: "arrayBuffer" })));
+      if (parts.some((part) => !part)) {
+        await deleteNetlifyUpload(session);
+        throw new HttpError(422, "OBJECT_MISMATCH", "Mindestens ein Upload-Teil fehlt.");
+      }
+      actualSize = parts.reduce((sum, part) => sum + (part?.data.byteLength ?? 0), 0);
+      const firstContentType = parts[0]?.metadata?.["content-type"];
+      actualType = typeof firstContentType === "string" ? firstContentType : "";
+      owner = parts.every((part) => part?.metadata?.["upload-session"] === session.id) ? session.id : "";
+    } else {
+      const originalHead = await headObject(session.originalKey);
+      actualSize = Number(originalHead.ContentLength ?? -1);
+      actualType = originalHead.ContentType ?? "";
+      owner = originalHead.Metadata?.["upload-session"] ?? "";
+    }
+    const maxBytes = isNetlify ? NETLIFY_MAX_FILE_BYTES : maxBytesFor(session.kind);
+    if (actualSize !== session.declaredSize || actualSize > maxBytes || actualType !== session.mimeType || owner !== session.id) {
+      if (isNetlify) await deleteNetlifyUpload(session);
+      else await deleteObjects([session.originalKey, session.previewKey]);
       await setUploadSession({ ...session, status: "rejected" });
       throw new HttpError(422, "OBJECT_MISMATCH", "Die hochgeladene Datei stimmt nicht mit den geprüften Dateidaten überein.");
     }
     if (session.expectedPreview && session.previewKey) {
-      const previewHead = await headObject(session.previewKey);
-      const previewSize = Number(previewHead.ContentLength ?? 0);
-      if (previewHead.ContentType !== "image/webp" || previewSize <= 0 || previewSize > 5 * 1024 * 1024 || previewHead.Metadata?.["upload-session"] !== session.id) {
-        await deleteObjects([session.originalKey, session.previewKey]);
+      let previewSize = 0;
+      let previewType = "";
+      let previewOwner = "";
+      if (isNetlify) {
+        const preview = await mediaBinaryStore().getWithMetadata(netlifyBlobKey("preview", session.id), { type: "arrayBuffer" });
+        previewSize = preview?.data.byteLength ?? 0;
+        const previewContentType = preview?.metadata?.["content-type"];
+        previewType = typeof previewContentType === "string" ? previewContentType : "";
+        const previewUploadSession = preview?.metadata?.["upload-session"];
+        previewOwner = typeof previewUploadSession === "string" ? previewUploadSession : "";
+      } else {
+        const previewHead = await headObject(session.previewKey);
+        previewSize = Number(previewHead.ContentLength ?? 0);
+        previewType = previewHead.ContentType ?? "";
+        previewOwner = previewHead.Metadata?.["upload-session"] ?? "";
+      }
+      if (previewType !== "image/webp" || previewSize <= 0 || previewSize > 5 * 1024 * 1024 || previewOwner !== session.id) {
+        if (isNetlify) await deleteNetlifyUpload(session);
+        else await deleteObjects([session.originalKey, session.previewKey]);
         await setUploadSession({ ...session, status: "rejected" });
         throw new HttpError(422, "PREVIEW_INVALID", "Die Bildvorschau ist ungültig.");
       }
@@ -74,6 +108,7 @@ export default async (request: Request, _context: Context) => {
       mimeType: session.mimeType,
       size: actualSize,
       kind: session.kind,
+      storage: session.storage ?? "hetzner",
       status: "ready",
       ...validateDimensions(body.width, body.height),
     };

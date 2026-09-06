@@ -22,8 +22,8 @@ export default async (request: Request, _context: Context) => {
     const all = (await listMedia()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const page = all.slice(offset, offset + EVENT.galleryPageSize);
     const items = await Promise.all(page.map(async (item) => {
-      const previewUrl = item.previewKey ? await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null;
-      const viewUrl = item.kind === "video" ? await signDownload(item.originalKey, "inline", item.originalName) : previewUrl;
+      const previewUrl = item.previewKey ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=preview` : await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null;
+      const viewUrl = item.kind === "video" ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=original` : await signDownload(item.originalKey, "inline", item.originalName) : previewUrl;
       return {
         id: item.id,
         kind: item.kind,

@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/functions";
-import { rateStore, uploadStore } from "./_lib/data.js";
+import { deleteNetlifyUpload, rateStore, uploadStore } from "./_lib/data.js";
 import type { UploadSession } from "./_lib/model.js";
 import { abortMultipart, deleteObjects } from "./_lib/s3.js";
 
@@ -15,8 +15,11 @@ export default async (_request: Request, _context: Context) => {
     const oldFinished = ["ready", "aborted", "rejected"].includes(session.status) && new Date(session.createdAt).getTime() < now - 7 * 86400_000;
     if (!expired && !oldFinished) continue;
     if (expired && ["uploading", "finalizing"].includes(session.status)) {
-      if (session.multipartUploadId) await abortMultipart(session.originalKey, session.multipartUploadId).catch(() => undefined);
-      await deleteObjects([session.originalKey, session.previewKey]).catch(() => undefined);
+      if (session.storage === "netlify") await deleteNetlifyUpload(session).catch(() => undefined);
+      else {
+        if (session.multipartUploadId) await abortMultipart(session.originalKey, session.multipartUploadId).catch(() => undefined);
+        await deleteObjects([session.originalKey, session.previewKey]).catch(() => undefined);
+      }
     }
     await uploads.delete(key);
     cleaned += 1;

@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getUploadSession, setUploadSession } from "./_lib/data.js";
+import { deleteNetlifyUpload, getUploadSession, setUploadSession } from "./_lib/data.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { requireUploadToken } from "./_lib/security.js";
 import { abortMultipart, deleteObjects } from "./_lib/s3.js";
@@ -18,7 +18,8 @@ export default async (request: Request, _context: Context) => {
     if (session.multipartUploadId && session.mode === "multipart") {
       await abortMultipart(session.originalKey, session.multipartUploadId).catch((error) => console.warn("Abort multipart", error));
     }
-    await deleteObjects([session.originalKey, session.previewKey]);
+    if (session.storage === "netlify") await deleteNetlifyUpload(session);
+    else await deleteObjects([session.originalKey, session.previewKey]);
     await setUploadSession({ ...session, status: "aborted" });
     return json({ ok: true });
   } catch (error) {

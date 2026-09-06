@@ -1,4 +1,5 @@
 import { getStore } from "@netlify/blobs";
+import { netlifyBlobKey, netlifyPartCount } from "./config.js";
 import type { GuestbookRecord, MediaRecord, UploadSession } from "./model.js";
 
 function store(name: string) {
@@ -9,6 +10,19 @@ export const uploadStore = () => store("upload-sessions");
 export const mediaStore = () => store("media-metadata");
 export const guestbookStore = () => store("guestbook");
 export const rateStore = () => store("rate-limits");
+export const mediaBinaryStore = () => store("media-binary");
+
+export async function deleteNetlifyUpload(session: Pick<UploadSession, "id" | "declaredSize" | "expectedPreview">): Promise<void> {
+  const keys = Array.from({ length: netlifyPartCount(session.declaredSize) }, (_, index) => netlifyBlobKey("original", session.id, index + 1));
+  if (session.expectedPreview) keys.push(netlifyBlobKey("preview", session.id));
+  await Promise.all(keys.map((key) => mediaBinaryStore().delete(key)));
+}
+
+export async function deleteNetlifyMedia(record: Pick<MediaRecord, "id" | "size" | "previewKey">): Promise<void> {
+  const keys = Array.from({ length: netlifyPartCount(record.size) }, (_, index) => netlifyBlobKey("original", record.id, index + 1));
+  if (record.previewKey) keys.push(netlifyBlobKey("preview", record.id));
+  await Promise.all(keys.map((key) => mediaBinaryStore().delete(key)));
+}
 
 export async function getUploadSession(id: string): Promise<UploadSession | null> {
   return uploadStore().get(id, { type: "json" }) as Promise<UploadSession | null>;

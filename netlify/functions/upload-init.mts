@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { EVENT, extensionFor } from "./_lib/config.js";
+import { EVENT, extensionFor, mediaStorageBackend, NETLIFY_MAX_FILE_BYTES, NETLIFY_PART_BYTES, netlifyPartCount } from "./_lib/config.js";
 import { enforceRateLimit, issueUploadToken, verifyTurnstile } from "./_lib/security.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { setUploadSession } from "./_lib/data.js";
@@ -24,6 +24,10 @@ export default async (request: Request, _context: Context) => {
     }
 
     const specs = body.files.map(validateUploadSpec);
+    const storage = mediaStorageBackend();
+    if (storage === "netlify" && specs.some((spec) => spec.size > NETLIFY_MAX_FILE_BYTES)) {
+      throw new HttpError(413, "NETLIFY_FILE_TOO_LARGE", "Im Netlify-Testbetrieb sind Dateien bis 20 MB möglich. Für größere Videos bitte später Hetzner aktivieren.");
+    }
     const results = [];
     for (const spec of specs) {
       const id = crypto.randomUUID();
@@ -31,10 +35,10 @@ export default async (request: Request, _context: Context) => {
       const date = createdAt.slice(0, 7).replace("-", "/");
       const originalKey = `originals/${date}/${crypto.randomUUID()}.${extensionFor(spec.type)}`;
       const previewKey = spec.wantsPreview ? `previews/${date}/${crypto.randomUUID()}.webp` : null;
-      const mode = spec.size > EVENT.multipartThresholdBytes ? "multipart" : "single";
+      const mode = storage === "netlify" ? "netlify" : spec.size > EVENT.multipartThresholdBytes ? "multipart" : "single";
       let multipartUploadId: string | null = null;
-      const partSize = mode === "multipart" ? EVENT.multipartPartBytes : null;
-      const totalParts = partSize ? Math.ceil(spec.size / partSize) : null;
+      const partSize = mode === "netlify" ? NETLIFY_PART_BYTES : mode === "multipart" ? EVENT.multipartPartBytes : null;
+      const totalParts = partSize ? (mode === "netlify" ? netlifyPartCount(spec.size) : Math.ceil(spec.size / partSize)) : null;
 
       if (mode === "multipart") multipartUploadId = await startMultipart(originalKey, spec.type, id);
       const session: UploadSession = {
@@ -49,6 +53,7 @@ export default async (request: Request, _context: Context) => {
         declaredSize: spec.size,
         kind: spec.kind,
         mode,
+        storage,
         multipartUploadId,
         partSize,
         totalParts,
@@ -57,7 +62,16 @@ export default async (request: Request, _context: Context) => {
       };
       await setUploadSession(session);
       const uploadToken = await issueUploadToken(id);
-      const original = mode === "single"
+      const original = mode === "netlify"
+        ? {
+            partSize: NETLIFY_PART_BYTES,
+            parts: Array.from({ length: totalParts! }, (_, index) => ({
+              partNumber: index + 1,
+              url: `/api/upload-netlify?sessionId=${encodeURIComponent(id)}&kind=original&partNumber=${index + 1}`,
+            })),
+            expiresIn: 7200,
+          }
+        : mode === "single"
         ? await signSingleUpload(originalKey, spec.type, id)
         : {
             partSize,
@@ -69,7 +83,11 @@ export default async (request: Request, _context: Context) => {
             ),
             expiresIn: 600,
           };
-      const preview = previewKey ? await signSingleUpload(previewKey, "image/webp", id) : null;
+      const preview = previewKey
+        ? storage === "netlify"
+          ? { url: `/api/upload-netlify?sessionId=${encodeURIComponent(id)}&kind=preview&partNumber=1`, headers: {}, expiresIn: 7200 }
+          : await signSingleUpload(previewKey, "image/webp", id)
+        : null;
       results.push({ id, uploadToken, mode, original, preview });
     }
     return json({ uploads: results });
