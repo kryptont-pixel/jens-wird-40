@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { EVENT, extensionFor, mediaStorageBackend, NETLIFY_MAX_FILE_BYTES, NETLIFY_PART_BYTES, netlifyPartCount } from "./_lib/config.js";
-import { enforceRateLimit, issueUploadToken, verifyTurnstile } from "./_lib/security.js";
+import { enforceRateLimit, issueUploadToken } from "./_lib/security.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { setUploadSession } from "./_lib/data.js";
 import { signPart, signSingleUpload, startMultipart } from "./_lib/s3.js";
@@ -9,7 +9,6 @@ import type { UploadSession } from "./_lib/model.js";
 
 interface Body {
   files: UploadSpec[];
-  turnstileToken: string;
 }
 
 export default async (request: Request, _context: Context) => {
@@ -18,7 +17,6 @@ export default async (request: Request, _context: Context) => {
     assertSameOrigin(request);
     const body = await readJson<Body>(request, 128_000);
     await enforceRateLimit(request, "upload-init", 30, 15 * 60);
-    await verifyTurnstile(request, body.turnstileToken);
     if (!Array.isArray(body.files) || body.files.length === 0 || body.files.length > 20) {
       throw new HttpError(400, "INVALID_FILE_COUNT", "Bitte wähle zwischen 1 und 20 Dateien aus.");
     }

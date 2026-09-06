@@ -15,7 +15,6 @@ import uploadInit from "../netlify/functions/upload-init.mts";
 
 describe("Upload-Sitzung", () => {
   beforeEach(() => {
-    process.env.ALLOW_TEST_BYPASS = "true";
     process.env.CONTEXT = "dev";
     process.env.SESSION_SECRET = "x".repeat(40);
     mocks.setUploadSession.mockClear();
@@ -29,7 +28,6 @@ describe("Upload-Sitzung", () => {
     const response = await uploadInit(new Request("http://localhost/api/upload-init", {
       method: "POST",
       body: JSON.stringify({
-        turnstileToken: "test-bypass",
         files: [{ name: "party.jpg", size: 2048, type: "image/jpeg", wantsPreview: true }],
       }),
     }), {} as never);
@@ -45,7 +43,6 @@ describe("Upload-Sitzung", () => {
     const response = await uploadInit(new Request("http://localhost/api/upload-init", {
       method: "POST",
       body: JSON.stringify({
-        turnstileToken: "test-bypass",
         files: [{ name: "party.mp4", size: 5 * 1024 * 1024, type: "video/mp4", wantsPreview: false }],
       }),
     }), {} as never);
@@ -61,7 +58,6 @@ describe("Upload-Sitzung", () => {
     const response = await uploadInit(new Request("http://localhost/api/upload-init", {
       method: "POST",
       body: JSON.stringify({
-        turnstileToken: "test-bypass",
         files: [{ name: "party.mp4", size: 20 * 1024 * 1024 + 1, type: "video/mp4", wantsPreview: false }],
       }),
     }), {} as never);

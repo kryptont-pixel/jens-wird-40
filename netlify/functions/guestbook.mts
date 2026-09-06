@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import { EVENT } from "./_lib/config.js";
 import { guestbookStore, listGuestbook } from "./_lib/data.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
-import { enforceRateLimit, verifyTurnstile } from "./_lib/security.js";
+import { enforceRateLimit } from "./_lib/security.js";
 import { sanitizePlainText } from "./_lib/validation.js";
 import type { GuestbookRecord } from "./_lib/model.js";
 
@@ -17,9 +17,8 @@ export default async (request: Request, _context: Context) => {
     }
 
     assertSameOrigin(request);
-    const body = await readJson<{ name?: string; message?: string; turnstileToken?: string }>(request);
+    const body = await readJson<{ name?: string; message?: string }>(request);
     await enforceRateLimit(request, "guestbook", 5, 30 * 60);
-    await verifyTurnstile(request, body.turnstileToken);
     const name = sanitizePlainText(body.name, 60);
     const message = sanitizePlainText(body.message, EVENT.guestbookMaxChars);
     if (message.length < 2) throw new HttpError(400, "MESSAGE_REQUIRED", "Bitte schreibe mindestens zwei Zeichen.");
