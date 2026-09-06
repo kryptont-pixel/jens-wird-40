@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "Unvollstaendige-Multipart-Uploads-entfernen",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "originals/" },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

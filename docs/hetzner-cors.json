@@ -1,0 +1,11 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://IHRE-ENDGUELTIGE-DOMAIN.example"],
+      "AllowedMethods": ["GET", "PUT", "HEAD"],
+      "AllowedHeaders": ["content-type", "if-none-match", "x-amz-meta-upload-session", "x-amz-content-sha256", "x-amz-date", "authorization"],
+      "ExposeHeaders": ["ETag", "Content-Length", "Content-Type"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

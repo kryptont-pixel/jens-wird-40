@@ -1,0 +1,43 @@
+[build]
+  command = "pnpm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[dev]
+  command = "pnpm run dev:vite"
+  targetPort = 5173
+  port = 8888
+  publish = "dist"
+  autoLaunch = false
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.your-objectstorage.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/qr/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

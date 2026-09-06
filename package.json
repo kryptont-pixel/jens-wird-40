@@ -1,0 +1,55 @@
+{
+  "name": "jens-wird-40",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:netlify": "pnpm dlx netlify-cli dev",
+    "dev:vite": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "functions:bundle": "node scripts/check-functions.mjs",
+    "qr": "node scripts/generate-qr.mjs && node scripts/verify-qr.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm functions:bundle"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "latest",
+    "@aws-sdk/s3-request-presigner": "latest",
+    "@fontsource/cormorant-garamond": "latest",
+    "@fontsource/manrope": "latest",
+    "@netlify/blobs": "latest",
+    "@netlify/functions": "latest",
+    "bcryptjs": "latest",
+    "jose": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "eslint": "latest",
+    "eslint-plugin-react-hooks": "latest",
+    "eslint-plugin-react-refresh": "latest",
+    "esbuild": "latest",
+    "globals": "latest",
+    "jsqr": "latest",
+    "pngjs": "latest",
+    "qrcode": "latest",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}

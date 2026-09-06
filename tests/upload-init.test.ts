@@ -1,0 +1,38 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({ setUploadSession: vi.fn() }));
+vi.mock("../netlify/functions/_lib/data.js", () => ({
+  setUploadSession: mocks.setUploadSession,
+  rateStore: () => ({ get: vi.fn(async () => null), setJSON: vi.fn(async () => undefined) }),
+}));
+vi.mock("../netlify/functions/_lib/s3.js", () => ({
+  signSingleUpload: vi.fn(async () => ({ url: "https://storage.example/upload", headers: { "content-type": "image/jpeg" }, expiresIn: 600 })),
+  signPart: vi.fn(),
+  startMultipart: vi.fn(),
+}));
+
+import uploadInit from "../netlify/functions/upload-init.mts";
+
+describe("Upload-Sitzung", () => {
+  beforeEach(() => {
+    process.env.ALLOW_TEST_BYPASS = "true";
+    process.env.CONTEXT = "dev";
+    process.env.SESSION_SECRET = "x".repeat(40);
+    mocks.setUploadSession.mockClear();
+  });
+
+  it("erlaubt einem Gast ohne Konto eine echte Upload-Sitzung anzufordern", async () => {
+    const response = await uploadInit(new Request("http://localhost/api/upload-init", {
+      method: "POST",
+      body: JSON.stringify({
+        turnstileToken: "test-bypass",
+        files: [{ name: "party.jpg", size: 2048, type: "image/jpeg", wantsPreview: true }],
+      }),
+    }), {} as never);
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.uploads).toHaveLength(1);
+    expect(data.uploads[0].uploadToken).toBeTypeOf("string");
+    expect(mocks.setUploadSession).toHaveBeenCalledOnce();
+  });
+});
