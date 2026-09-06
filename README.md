@@ -33,6 +33,17 @@ pnpm dev:netlify
 
 Netlify Dev verwendet lokal einen isolierten Blobs-Speicher. Echte Uploads benötigen zusätzlich einen eingerichteten Hetzner-Bucket und die Werte aus `.env`.
 
+### Temporärer Netlify-Uploadbetrieb
+
+Für erste Tests in Netlify unter **Site configuration → Environment variables** setzen:
+
+```text
+MEDIA_STORAGE=netlify
+VITE_MEDIA_STORAGE=netlify
+```
+
+Danach neu deployen. Bilder und Videos werden dann in Netlify Blobs gespeichert und dürfen im Testbetrieb höchstens 20 MB groß sein. Die Function-Anfragen werden intern in 4-MB-Teile aufgeteilt. Für die Feier sollten beide Werte wieder auf `hetzner` gestellt und anschließend erneut deployt werden, weil der Hetzner-Weg die vorgesehenen 50 MB für Bilder und 2 GB für Videos unterstützt.
+
 ## 2. Hetzner-Projekt und privaten Bucket erstellen
 
 1. In der Hetzner Console ein Projekt anlegen oder auswählen.
@@ -102,6 +113,8 @@ Nicht für jeden kleinen Test einen Produktions-Deploy auslösen. Änderungen zu
 | `VITE_TURNSTILE_SITE_KEY` | öffentlich | Turnstile Site Key |
 | `PUBLIC_SITE_URL` | serverseitig | dieselbe endgültige Basis-URL; Origin- und Hostprüfung |
 | `TURNSTILE_SECRET_KEY` | geheim/serverseitig | Turnstile Secret Key |
+| `MEDIA_STORAGE` | serverseitig | `netlify` für den temporären Testbetrieb oder `hetzner` für den produktiven Upload |
+| `VITE_MEDIA_STORAGE` | öffentlich | muss zum serverseitigen `MEDIA_STORAGE` passen |
 | `HETZNER_S3_REGION` | serverseitig | z. B. `nbg1` |
 | `HETZNER_S3_ENDPOINT` | serverseitig | z. B. `https://nbg1.your-objectstorage.com` |
 | `HETZNER_S3_BUCKET` | serverseitig | privater Bucketname |
