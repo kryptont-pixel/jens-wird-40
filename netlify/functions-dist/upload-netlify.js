@@ -1,51 +1,3 @@
-// src/config/event.ts
-var EVENT = {
-  name: "Jens",
-  occasion: "40. Geburtstag",
-  date: "2026-10-10T00:00:00+02:00",
-  dateLabel: "10.10.2026",
-  language: "de",
-  maxImageBytes: 50 * 1024 * 1024,
-  maxVideoBytes: 2 * 1024 * 1024 * 1024,
-  multipartThresholdBytes: 64 * 1024 * 1024,
-  multipartPartBytes: 64 * 1024 * 1024,
-  guestbookMaxChars: 500,
-  galleryPageSize: 24,
-  contact: ""
-};
-var IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "image/heif"
-];
-var VIDEO_MIME_TYPES = [
-  "video/mp4",
-  "video/quicktime",
-  "video/webm"
-];
-var ALLOWED_MIME_TYPES = [
-  ...IMAGE_MIME_TYPES,
-  ...VIDEO_MIME_TYPES
-];
-
-// netlify/functions/_lib/config.ts
-var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
-var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
-var allowed = new Set(ALLOWED_MIME_TYPES);
-var images = new Set(IMAGE_MIME_TYPES);
-var videos = new Set(VIDEO_MIME_TYPES);
-function requireEnv(name) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
-  return value;
-}
-function isProduction() {
-  return process.env.CONTEXT === "production";
-}
-
 // node_modules/.pnpm/@netlify+runtime-utils@3.0.0/node_modules/@netlify/runtime-utils/dist/main.js
 var getString = (input) => typeof input === "string" ? input : JSON.stringify(input);
 var base64Decode = globalThis.Buffer ? (input) => Buffer.from(input, "base64").toString() : (input) => atob(input);
@@ -853,19 +805,62 @@ var getStore = (input, options) => {
   );
 };
 
+// src/config/event.ts
+var EVENT = {
+  name: "Jens",
+  occasion: "40. Geburtstag",
+  date: "2026-10-10T00:00:00+02:00",
+  dateLabel: "10.10.2026",
+  language: "de",
+  maxImageBytes: 50 * 1024 * 1024,
+  maxVideoBytes: 2 * 1024 * 1024 * 1024,
+  multipartThresholdBytes: 64 * 1024 * 1024,
+  multipartPartBytes: 64 * 1024 * 1024,
+  guestbookMaxChars: 500,
+  galleryPageSize: 24,
+  contact: ""
+};
+var IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif"
+];
+var VIDEO_MIME_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm"
+];
+var ALLOWED_MIME_TYPES = [
+  ...IMAGE_MIME_TYPES,
+  ...VIDEO_MIME_TYPES
+];
+
+// netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
+function netlifyBlobKey(kind, sessionId, partNumber = 1) {
+  return `${kind}/${sessionId}/${partNumber}`;
+}
+var allowed = new Set(ALLOWED_MIME_TYPES);
+var images = new Set(IMAGE_MIME_TYPES);
+var videos = new Set(VIDEO_MIME_TYPES);
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
+  return value;
+}
+
 // netlify/functions/_lib/data.ts
 function store(name) {
   return getStore({ name, consistency: "strong" });
 }
-var guestbookStore = () => store("guestbook");
-var rateStore = () => store("rate-limits");
-async function getGuestbookEntry(id) {
-  return guestbookStore().get(id, { type: "json" });
-}
-async function listGuestbook() {
-  const { blobs } = await guestbookStore().list();
-  const records = await Promise.all(blobs.map(({ key }) => getGuestbookEntry(key)));
-  return records.filter((item) => Boolean(item));
+var uploadStore = () => store("upload-sessions");
+var mediaBinaryStore = () => store("media-binary");
+async function getUploadSession(id) {
+  return uploadStore().get(id, { type: "json" });
 }
 
 // netlify/functions/_lib/http.ts
@@ -882,17 +877,6 @@ function json(data, status = 200, headers = {}) {
 }
 function errorResponse(status, code, message2) {
   return json({ error: { code, message: message2 } }, status);
-}
-async function readJson(request, maxBytes = 64e3) {
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > maxBytes) throw new HttpError(413, "REQUEST_TOO_LARGE", "Die Anfrage ist zu gro\xDF.");
-  const text = await request.text();
-  if (text.length > maxBytes) throw new HttpError(413, "REQUEST_TOO_LARGE", "Die Anfrage ist zu gro\xDF.");
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new HttpError(400, "INVALID_JSON", "Die Anfrage ist ung\xFCltig.");
-  }
 }
 var HttpError = class extends Error {
   constructor(status, code, message2) {
@@ -914,9 +898,6 @@ function assertMethod(request, ...methods) {
     throw new HttpError(405, "METHOD_NOT_ALLOWED", "Diese Anfrage ist nicht erlaubt.");
   }
 }
-function clientIp(request) {
-  return request.headers.get("x-nf-client-connection-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-}
 function assertSameOrigin(request) {
   const origin = request.headers.get("origin");
   if (!origin) return;
@@ -926,9 +907,6 @@ function assertSameOrigin(request) {
     throw new HttpError(403, "BAD_ORIGIN", "Diese Anfrage wurde aus Sicherheitsgr\xFCnden abgelehnt.");
   }
 }
-
-// netlify/functions/_lib/security.ts
-import { createHash } from "node:crypto";
 
 // node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs/index.js
 var nextTick = typeof setImmediate === "function" ? setImmediate : typeof scheduler === "object" && typeof scheduler.postTask === "function" ? scheduler.postTask.bind(scheduler) : setTimeout;
@@ -961,15 +939,6 @@ function encode(string) {
     bytes[i] = code;
   }
   return bytes;
-}
-function encodeBase64(input, url = false) {
-  if (Uint8Array.prototype.toBase64)
-    return input.toBase64({ alphabet: url ? "base64url" : "base64", omitPadding: url });
-  const CHUNK_SIZE = 32768, arr = [];
-  for (let i = 0; i < input.length; i += CHUNK_SIZE)
-    arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
-  const encoded = btoa(arr.join(""));
-  return url ? encoded.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_") : encoded;
 }
 function decodeBase64(encoded, url = false) {
   if (Uint8Array.fromBase64)
@@ -1046,9 +1015,6 @@ function decode(input) {
     throw new TypeError(invalid, { cause });
   }
 }
-function encode2(input) {
-  return encodeBase64(typeof input == "string" ? encoder.encode(input) : input, true);
-}
 
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/validate.js
 function isObject(input) {
@@ -1067,10 +1033,6 @@ function isDisjoint(...headers) {
         parameters.add(parameter);
       }
   return true;
-}
-function assertNotSet(value, name) {
-  if (value !== void 0)
-    throw new TypeError(`${name} can only be called once`);
 }
 function decodeBase64url(value, label, ErrorClass) {
   try {
@@ -1103,11 +1065,6 @@ function validateAlgorithms(option, algorithms) {
     throw new TypeError(`"${option}" option must be an array of strings`);
   return algorithms === void 0 ? void 0 : new Set(algorithms);
 }
-function validateCritDuplicates(Err, protectedHeader) {
-  const { crit } = protectedHeader ?? {};
-  if (Array.isArray(crit) && new Set(crit).size !== crit.length)
-    throw new Err('"crit" (Critical) Header Parameter MUST NOT contain duplicate values');
-}
 function validateCrit(Err, recognizedDefault, recognizedOption, protectedHeader, joseHeader) {
   if (joseHeader.crit !== void 0 && protectedHeader?.crit === void 0)
     throw new Err('"crit" (Critical) Header Parameter MUST be integrity protected');
@@ -1134,17 +1091,6 @@ function validateB64(protectedHeader, extensions) {
     return b64;
   }
   return true;
-}
-function serializeJoseHeader(Err, header) {
-  let serialized, parsed;
-  try {
-    serialized = JSON.stringify(header), parsed = JSON.parse(serialized);
-  } catch (cause) {
-    throw new Err("JOSE Header is not valid JSON", { cause });
-  }
-  if (!isObject(parsed))
-    throw new Err("JOSE Header is not a JSON object");
-  return [parsed, serialized];
 }
 
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/key.js
@@ -1435,17 +1381,6 @@ function validateInput(label, input) {
     throw new TypeError(`Invalid ${label} input`);
   return input;
 }
-function validateStringClaim(claim, value) {
-  if (typeof value != "string")
-    throw new TypeError(`"${claim}" claim must be a string`);
-}
-function validateAudienceClaim(value) {
-  if (typeof value != "string" && (!Array.isArray(value) || Array.from(value).some((member) => typeof member != "string")))
-    throw new TypeError('"aud" claim must be a string or an array of strings');
-}
-function numericDate(value, label) {
-  return typeof value == "number" ? validateInput(label, value) : value instanceof Date ? validateInput(label, epoch(value)) : epoch(/* @__PURE__ */ new Date()) + secs(value);
-}
 var normalizeTyp = (value) => {
   const normalized = value.toLowerCase();
   return value.includes("/") ? normalized : `application/${normalized}`;
@@ -1504,48 +1439,6 @@ function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
   }
   return payload;
 }
-var producerPayloads;
-function producerPayload(producer) {
-  return producerPayloads.get(producer);
-}
-function jwtData(producer) {
-  const payload = producerPayload(producer);
-  for (const claim of ["iat", "nbf", "exp"]) {
-    const value = payload[claim];
-    if (typeof value == "number" && !Number.isFinite(value))
-      throw new TypeError(`"${claim}" claim must be a finite number`);
-  }
-  return encoder.encode(JSON.stringify(payload));
-}
-var JWTClaimsBuilder = class {
-  constructor(payload = {}) {
-    if (!isObject(payload))
-      throw new TypeError("JWT Claims Set MUST be an object");
-    (producerPayloads ||= /* @__PURE__ */ new WeakMap()).set(this, structuredClone(payload));
-  }
-  setIssuer(value) {
-    return validateStringClaim("iss", value), producerPayload(this).iss = value, this;
-  }
-  setSubject(value) {
-    return validateStringClaim("sub", value), producerPayload(this).sub = value, this;
-  }
-  setAudience(value) {
-    return validateAudienceClaim(value), producerPayload(this).aud = value, this;
-  }
-  setJti(value) {
-    return validateStringClaim("jti", value), producerPayload(this).jti = value, this;
-  }
-  setNotBefore(value) {
-    return producerPayload(this).nbf = numericDate(value, "setNotBefore"), this;
-  }
-  setExpirationTime(value) {
-    return producerPayload(this).exp = numericDate(value, "setExpirationTime"), this;
-  }
-  setIssuedAt(value) {
-    const payload = producerPayload(this);
-    return value === void 0 ? payload.iat = epoch(/* @__PURE__ */ new Date()) : typeof value == "string" ? payload.iat = validateInput("setIssuedAt", epoch(/* @__PURE__ */ new Date()) + secs(value)) : payload.iat = numericDate(value, "setIssuedAt"), this;
-  }
-};
 
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/jwt/verify.js
 async function jwtVerify(jwt, key, options) {
@@ -1556,153 +1449,83 @@ async function jwtVerify(jwt, key, options) {
   return { ...verified, payload };
 }
 
-// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_sign.js
-async function createSignature(input, key, rejectUnencoded) {
-  let [payload, protectedHeader, unprotectedHeader, crit] = input, protectedHeaderString = "";
-  if (protectedHeader !== void 0) {
-    const normalized = serializeJoseHeader(JWSInvalid, protectedHeader);
-    protectedHeader = normalized[0], protectedHeaderString = encode2(normalized[1]);
-  }
-  if (unprotectedHeader !== void 0 && (unprotectedHeader = serializeJoseHeader(JWSInvalid, unprotectedHeader)[0]), !protectedHeader && !unprotectedHeader)
-    throw new JWSInvalid("either setProtectedHeader or setUnprotectedHeader must be called before #sign()");
-  if (!isDisjoint(protectedHeader, unprotectedHeader))
-    throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
-  const joseHeader = { ...protectedHeader, ...unprotectedHeader };
-  validateCritDuplicates(JWSInvalid, protectedHeader);
-  const b64 = validateB64(protectedHeader, validateCrit(JWSInvalid, JWS_RECOGNIZED, crit, protectedHeader, joseHeader));
-  b64 || rejectUnencoded?.();
-  const { alg } = joseHeader;
-  if (typeof alg != "string" || !alg)
-    throw new JWSInvalid('JWS "alg" (Algorithm) Header Parameter missing or invalid');
-  const entry = jwsAlgorithm(alg);
-  let payloadS = "", payloadB = payload, data;
-  if (b64) {
-    const encoded = input[4];
-    encoded ? (payloadS = encoded[0] ??= encode2(payload), payloadB = encoded[1] ??= encode(payloadS)) : (payloadS = encode2(payload), data = encoder.encode(`${protectedHeaderString}.${payloadS}`));
-  }
-  data ??= concat(encode(protectedHeaderString), encode("."), payloadB);
-  const k = await rawKey(await prepareKey(entry, key, "sign"), entry.subtle, "sign");
-  entry.minRsaBits && checkModulusLength(entry.alg, k);
-  const jws = {
-    signature: encode2(new Uint8Array(await crypto.subtle.sign(entry.signing, k, data))),
-    payload: payloadS
-  };
-  return protectedHeader && (jws.protected = protectedHeaderString), unprotectedHeader && (jws.header = unprotectedHeader), [jws, b64];
-}
-async function createCompactSignature(payload, protectedHeader, crit, key, rejectUnencoded) {
-  const [jws] = await createSignature([payload, protectedHeader, void 0, crit], key, rejectUnencoded);
-  return `${jws.protected}.${jws.payload}.${jws.signature}`;
-}
-
-// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/jwt/sign.js
-var SignJWT_base = JWTClaimsBuilder;
-var SignJWT = class extends SignJWT_base {
-  #protectedHeader;
-  setProtectedHeader(protectedHeader) {
-    return assertNotSet(this.#protectedHeader, "setProtectedHeader"), this.#protectedHeader = protectedHeader, this;
-  }
-  async sign(key, options) {
-    return createCompactSignature(jwtData(this), this.#protectedHeader, options?.crit, key, () => {
-      throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
-    });
-  }
-};
-
 // netlify/functions/_lib/security.ts
-var GUEST_COOKIE = "jens_guest";
 var GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 function secretKey() {
   const value = requireEnv("SESSION_SECRET");
   if (value.length < 32) throw new Error("Serverkonfiguration ung\xFCltig: SESSION_SECRET ist zu kurz.");
   return new TextEncoder().encode(value);
 }
-function cookieValue(request, name) {
-  const cookie = request.headers.get("cookie") ?? "";
-  for (const pair of cookie.split(";")) {
-    const [key, ...value] = pair.trim().split("=");
-    if (key === name) return decodeURIComponent(value.join("="));
-  }
-  return null;
-}
-async function getGuestId(request) {
-  const token = cookieValue(request, GUEST_COOKIE);
-  if (!token) return null;
+async function requireUploadToken(request, sessionId) {
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new HttpError(401, "UPLOAD_TOKEN_MISSING", "Die Upload-Sitzung ist abgelaufen.");
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
-    return payload.scope === "guest" && typeof payload.sub === "string" && /^[0-9a-f-]{36}$/i.test(payload.sub) ? payload.sub : null;
+    if (payload.scope !== "upload" || payload.sub !== sessionId) throw new Error("scope");
+    return payload.sub;
   } catch {
-    return null;
+    throw new HttpError(401, "UPLOAD_TOKEN_INVALID", "Die Upload-Sitzung ist abgelaufen. Bitte starte den Upload erneut.");
   }
-}
-async function getOrCreateGuest(request) {
-  const existingId = await getGuestId(request);
-  if (existingId) return { id: existingId };
-  const id = crypto.randomUUID();
-  const token = await new SignJWT({ scope: "guest" }).setProtectedHeader({ alg: "HS256" }).setSubject(id).setIssuedAt().setExpirationTime(`${GUEST_COOKIE_MAX_AGE}s`).setJti(crypto.randomUUID()).sign(secretKey());
-  const cookie = `${GUEST_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${GUEST_COOKIE_MAX_AGE}${isProduction() ? "; Secure" : ""}`;
-  return { id, cookie };
-}
-async function enforceRateLimit(request, scope, limit, windowSeconds) {
-  const now = Date.now();
-  const windowStart = Math.floor(now / (windowSeconds * 1e3)) * windowSeconds;
-  const identity = createHash("sha256").update(`${scope}:${clientIp(request)}`).digest("hex").slice(0, 32);
-  const key = `${scope}/${windowStart}/${identity}`;
-  const store2 = rateStore();
-  const current = await store2.get(key, { type: "json" });
-  const next = (current?.count ?? 0) + 1;
-  if (next > limit) throw new HttpError(429, "RATE_LIMITED", "Zu viele Versuche. Bitte warte einen Moment.");
-  await store2.setJSON(key, { count: next, expiresAt: new Date((windowStart + windowSeconds * 2) * 1e3).toISOString() });
 }
 
 // netlify/functions/_lib/validation.ts
-function sanitizePlainText(value, maxLength) {
-  if (typeof value !== "string") return "";
-  return value.normalize("NFKC").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").replace(/[<>]/g, "").replace(/\r\n?/g, "\n").trim().slice(0, maxLength);
+var SAFE_KEY = /^(originals|previews)\/\d{4}\/\d{2}\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp|gif|heic|heif|mp4|mov|webm)$/i;
+function isSafeObjectKey(key) {
+  return SAFE_KEY.test(key) && !key.includes("..") && !key.startsWith("/");
+}
+function assertSafeObjectKey(key) {
+  if (!isSafeObjectKey(key)) throw new HttpError(400, "INVALID_OBJECT_KEY", "Der Speicherpfad ist ung\xFCltig.");
+}
+function assertUploadOwnership(session, tokenSubject, requestedKey) {
+  if (session.id !== tokenSubject) throw new HttpError(403, "FOREIGN_UPLOAD", "Diese Upload-Sitzung geh\xF6rt nicht zu dieser Anfrage.");
+  if (requestedKey && requestedKey !== session.originalKey) {
+    throw new HttpError(403, "FOREIGN_UPLOAD", "Ein fremder Speicherpfad kann nicht verwendet werden.");
+  }
+  assertSafeObjectKey(session.originalKey);
+  if (session.previewKey) assertSafeObjectKey(session.previewKey);
 }
 
-// netlify/functions/guestbook.mts
-function publicEntry(entry) {
-  return {
-    id: entry.id,
-    createdAt: entry.createdAt,
-    name: entry.name,
-    message: entry.message
-  };
-}
-var guestbook_default = async (request, _context) => {
+// netlify/functions/upload-netlify.mts
+var upload_netlify_default = async (request, _context) => {
   try {
-    assertMethod(request, "GET", "POST");
-    const guest = await getOrCreateGuest(request);
-    if (request.method === "GET") {
-      const entries = (await listGuestbook()).filter((entry) => entry.ownerGuestId === guest.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 200).map(publicEntry);
-      return json({ entries }, 200, {
-        "cache-control": "private, no-store",
-        ...guest.cookie ? { "set-cookie": guest.cookie } : {}
-      });
-    }
+    assertMethod(request, "PUT");
     assertSameOrigin(request);
-    const body = await readJson(request);
-    await enforceRateLimit(request, "guestbook", 5, 30 * 60);
-    const name = sanitizePlainText(body.name, 60);
-    const message2 = sanitizePlainText(body.message, EVENT.guestbookMaxChars);
-    if (message2.length < 2) throw new HttpError(400, "MESSAGE_REQUIRED", "Bitte schreibe mindestens zwei Zeichen.");
-    const record = {
-      id: crypto.randomUUID(),
-      ownerGuestId: guest.id,
-      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-      name: name || null,
-      message: message2
-    };
-    await guestbookStore().setJSON(record.id, record);
-    return json(
-      { entry: publicEntry(record), message: "Danke f\xFCr deinen Gru\xDF! \u{1F389}" },
-      201,
-      guest.cookie ? { "set-cookie": guest.cookie } : {}
-    );
+    const url = new URL(request.url);
+    const sessionId = url.searchParams.get("sessionId") ?? "";
+    const kind = url.searchParams.get("kind");
+    const partNumber = Number(url.searchParams.get("partNumber"));
+    if (!/^[0-9a-f-]{36}$/i.test(sessionId) || kind !== "original" && kind !== "preview" || !Number.isInteger(partNumber) || partNumber < 1) {
+      throw new HttpError(400, "INVALID_NETLIFY_UPLOAD", "Die Netlify-Uploaddaten sind ung\xFCltig.");
+    }
+    const subject = await requireUploadToken(request, sessionId);
+    const session = await getUploadSession(sessionId);
+    if (!session) throw new HttpError(404, "UPLOAD_NOT_FOUND", "Die Upload-Sitzung wurde nicht gefunden.");
+    assertUploadOwnership(session, subject);
+    if (session.storage !== "netlify" || session.mode !== "netlify" || session.status !== "uploading") {
+      throw new HttpError(409, "UPLOAD_NOT_ACTIVE", "Dieser Netlify-Upload ist nicht mehr aktiv.");
+    }
+    if (kind === "preview" && (!session.expectedPreview || partNumber !== 1)) {
+      throw new HttpError(400, "INVALID_PREVIEW_PART", "Die Bildvorschau ist ung\xFCltig.");
+    }
+    if (kind === "original" && (!session.totalParts || partNumber > session.totalParts)) {
+      throw new HttpError(400, "INVALID_PART", "Der Upload-Teil ist ung\xFCltig.");
+    }
+    const declaredLength = Number(request.headers.get("content-length") ?? 0);
+    if (declaredLength > NETLIFY_PART_BYTES) throw new HttpError(413, "PART_TOO_LARGE", "Dieser Upload-Teil ist zu gro\xDF.");
+    const data = await request.arrayBuffer();
+    if (!data.byteLength || data.byteLength > NETLIFY_PART_BYTES) throw new HttpError(413, "PART_TOO_LARGE", "Dieser Upload-Teil ist zu gro\xDF.");
+    const key = netlifyBlobKey(kind, session.id, partNumber);
+    await mediaBinaryStore().set(key, data, {
+      metadata: {
+        "upload-session": session.id,
+        "content-type": kind === "preview" ? "image/webp" : session.mimeType
+      }
+    });
+    return json({ ok: true }, 200, { etag: `"netlify-${partNumber}"` });
   } catch (error) {
-    return handleError(error, "guestbook");
+    return handleError(error, "upload-netlify");
   }
 };
 export {
-  guestbook_default as default
+  upload_netlify_default as default
 };

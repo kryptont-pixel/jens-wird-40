@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { EVENT } from "./_lib/config.js";
 import { listMedia } from "./_lib/data.js";
 import { assertMethod, handleError, json } from "./_lib/http.js";
+import { getOrCreateGuest } from "./_lib/security.js";
 import { signDownload } from "./_lib/s3.js";
 
 function decodeCursor(value: string | null): number {
@@ -17,9 +18,12 @@ function decodeCursor(value: string | null): number {
 export default async (request: Request, _context: Context) => {
   try {
     assertMethod(request, "GET");
+    const guest = await getOrCreateGuest(request);
     const url = new URL(request.url);
     const offset = decodeCursor(url.searchParams.get("cursor"));
-    const all = (await listMedia()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const all = (await listMedia())
+      .filter((item) => item.ownerGuestId === guest.id)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const page = all.slice(offset, offset + EVENT.galleryPageSize);
     const items = await Promise.all(page.map(async (item) => {
       const previewUrl = item.previewKey ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=preview` : await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null;
@@ -40,7 +44,10 @@ export default async (request: Request, _context: Context) => {
     return json(
       { items, nextCursor: nextOffset < all.length ? Buffer.from(String(nextOffset)).toString("base64url") : null },
       200,
-      { "cache-control": "public, max-age=15, stale-while-revalidate=30" },
+      {
+        "cache-control": "private, no-store",
+        ...(guest.cookie ? { "set-cookie": guest.cookie } : {}),
+      },
     );
   } catch (error) {
     return handleError(error, "gallery");

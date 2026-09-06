@@ -166,15 +166,15 @@ var DEFAULT_RETRY_DELAY = getEnvironment().get("NODE_ENV") === "test" ? 1 : 5e3;
 var MIN_RETRY_DELAY = 1e3;
 var MAX_RETRY = 5;
 var RATE_LIMIT_HEADER = "X-RateLimit-Reset";
-var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
+var fetchAndRetry = async (fetch, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
   try {
-    const res = await fetch2(url, options);
+    const res = await fetch(url, options);
     const isRetryable = res.status === 429 || res.status >= 500 || getRetryUrl !== void 0 && res.status === 403;
     if (attemptsLeft > 0 && isRetryable) {
       const delay = getDelay(res.headers.get(RATE_LIMIT_HEADER));
       await sleep(delay);
       const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-      return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+      return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
     }
     return res;
   } catch (error) {
@@ -184,7 +184,7 @@ var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRe
     const delay = getDelay();
     await sleep(delay);
     const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-    return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+    return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
   }
 };
 var getDelay = (rateLimitReset) => {
@@ -198,11 +198,11 @@ var sleep = (ms) => new Promise((resolve) => {
 });
 var SIGNED_URL_ACCEPT_HEADER = "application/json;type=signed-url";
 var Client = class {
-  constructor({ apiURL, consistency, edgeURL, fetch: fetch2, region, siteID, token, uncachedEdgeURL }) {
+  constructor({ apiURL, consistency, edgeURL, fetch, region, siteID, token, uncachedEdgeURL }) {
     this.apiURL = apiURL;
     this.consistency = consistency ?? "eventual";
     this.edgeURL = edgeURL;
-    this.fetch = fetch2 ?? globalThis.fetch;
+    this.fetch = fetch ?? globalThis.fetch;
     this.region = region;
     this.siteID = siteID;
     this.token = token;
@@ -804,6 +804,51 @@ var getStore = (input, options) => {
     "The `getStore` method requires the name of the store as a string or as the `name` property of an options object"
   );
 };
+
+// src/config/event.ts
+var EVENT = {
+  name: "Jens",
+  occasion: "40. Geburtstag",
+  date: "2026-10-10T00:00:00+02:00",
+  dateLabel: "10.10.2026",
+  language: "de",
+  maxImageBytes: 50 * 1024 * 1024,
+  maxVideoBytes: 2 * 1024 * 1024 * 1024,
+  multipartThresholdBytes: 64 * 1024 * 1024,
+  multipartPartBytes: 64 * 1024 * 1024,
+  guestbookMaxChars: 500,
+  galleryPageSize: 24,
+  contact: ""
+};
+var IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif"
+];
+var VIDEO_MIME_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm"
+];
+var ALLOWED_MIME_TYPES = [
+  ...IMAGE_MIME_TYPES,
+  ...VIDEO_MIME_TYPES
+];
+
+// netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
+var allowed = new Set(ALLOWED_MIME_TYPES);
+var images = new Set(IMAGE_MIME_TYPES);
+var videos = new Set(VIDEO_MIME_TYPES);
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
+  return value;
+}
 
 // netlify/functions/_lib/data.ts
 function store(name) {
@@ -1416,51 +1461,9 @@ async function jwtVerify(jwt, key, options) {
   return { ...verified, payload };
 }
 
-// src/config/event.ts
-var EVENT = {
-  name: "Jens",
-  occasion: "40. Geburtstag",
-  date: "2026-10-10T00:00:00+02:00",
-  dateLabel: "10.10.2026",
-  language: "de",
-  maxImageBytes: 50 * 1024 * 1024,
-  maxVideoBytes: 2 * 1024 * 1024 * 1024,
-  multipartThresholdBytes: 64 * 1024 * 1024,
-  multipartPartBytes: 64 * 1024 * 1024,
-  guestbookMaxChars: 500,
-  galleryPageSize: 24,
-  contact: ""
-};
-var IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "image/heif"
-];
-var VIDEO_MIME_TYPES = [
-  "video/mp4",
-  "video/quicktime",
-  "video/webm"
-];
-var ALLOWED_MIME_TYPES = [
-  ...IMAGE_MIME_TYPES,
-  ...VIDEO_MIME_TYPES
-];
-
-// netlify/functions/_lib/config.ts
-var allowed = new Set(ALLOWED_MIME_TYPES);
-var images = new Set(IMAGE_MIME_TYPES);
-var videos = new Set(VIDEO_MIME_TYPES);
-function requireEnv(name) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
-  return value;
-}
-
 // netlify/functions/_lib/security.ts
 var ADMIN_COOKIE = "jens_admin";
+var GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 function secretKey() {
   const value = requireEnv("SESSION_SECRET");
   if (value.length < 32) throw new Error("Serverkonfiguration ung\xFCltig: SESSION_SECRET ist zu kurz.");
@@ -1474,14 +1477,19 @@ function cookieValue(request, name) {
   }
   return null;
 }
-async function requireAdmin(request) {
+async function isAdmin(request) {
   const token = cookieValue(request, ADMIN_COOKIE);
-  if (!token) throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+  if (!token) return false;
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
-    if (payload.scope !== "admin" || payload.sub !== "party-admin") throw new Error("scope");
+    return payload.scope === "admin" && payload.sub === "party-admin";
   } catch {
-    throw new HttpError(401, "SESSION_EXPIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+    return false;
+  }
+}
+async function requireAdmin(request) {
+  if (!await isAdmin(request)) {
+    throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
   }
 }
 

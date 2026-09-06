@@ -31,7 +31,7 @@ export function useWebMcp(navigate: NavigateFunction) {
       }, { signal: lifecycle.signal })).catch(() => undefined);
     };
     register("open_party_upload", "Upload öffnen", "Öffnet den echten Foto- und Video-Upload für Jens' 40. Geburtstag.", "/upload");
-    register("open_party_gallery", "Galerie öffnen", "Öffnet die öffentliche Galerie mit den neuesten freigegebenen Partyaufnahmen.", "/galerie");
+    register("open_party_gallery", "Galerie öffnen", "Öffnet die persönliche Galerie mit den in diesem Browser hochgeladenen Partyaufnahmen.", "/galerie");
     return () => lifecycle.abort();
   }, [navigate]);
 }

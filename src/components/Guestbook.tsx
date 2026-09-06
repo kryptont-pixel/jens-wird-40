@@ -46,7 +46,7 @@ export function Guestbook() {
   return (
     <section className="guestbook-section" id="gaestebuch" aria-labelledby="guestbook-title">
       <div className="section-heading light">
-        <div><p className="section-kicker">Ein paar Worte für später</p><h2 id="guestbook-title">Gästebuch</h2><p>Ein Gruß, ein Insider oder einfach ein „Prost, Jens!“</p></div>
+        <div><p className="section-kicker">Ein paar Worte für später</p><h2 id="guestbook-title">Deine Grüße für Jens</h2><p>Hier siehst du nur die Einträge, die du mit diesem Browser geschrieben hast.</p></div>
       </div>
       <div className="guestbook-grid">
         <form className="guestbook-form" onSubmit={submit}>
@@ -59,7 +59,7 @@ export function Guestbook() {
         </form>
         <div className="guestbook-entries" aria-live="polite">
           {loading && <div className="entry-card muted"><LoaderCircle className="spin" /> Grüße werden geladen …</div>}
-          {!loading && !entries.length && <div className="entry-card empty"><MessageCircle /><strong>Noch ist die erste Seite frei.</strong><span>Dein Gruß kann der Anfang sein.</span></div>}
+          {!loading && !entries.length && <div className="entry-card empty"><MessageCircle /><strong>Du hast noch keinen Gruß eingetragen.</strong><span>Dein Eintrag erscheint anschließend genau hier.</span></div>}
           {entries.map((entry) => <article className="entry-card" key={entry.id}><p>{entry.message}</p><footer><strong>{entry.name || "Ein lieber Gast"}</strong><time dateTime={entry.createdAt}>{formatDate(entry.createdAt)}</time></footer></article>)}
         </div>
       </div>

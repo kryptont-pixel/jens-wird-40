@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { EVENT, extensionFor, mediaStorageBackend, NETLIFY_MAX_FILE_BYTES, NETLIFY_PART_BYTES, netlifyPartCount } from "./_lib/config.js";
-import { enforceRateLimit, issueUploadToken } from "./_lib/security.js";
+import { enforceRateLimit, getOrCreateGuest, issueUploadToken } from "./_lib/security.js";
 import { assertMethod, assertSameOrigin, handleError, HttpError, json, readJson } from "./_lib/http.js";
 import { setUploadSession } from "./_lib/data.js";
 import { signPart, signSingleUpload, startMultipart } from "./_lib/s3.js";
@@ -15,6 +15,7 @@ export default async (request: Request, _context: Context) => {
   try {
     assertMethod(request, "POST");
     assertSameOrigin(request);
+    const guest = await getOrCreateGuest(request);
     const body = await readJson<Body>(request, 128_000);
     await enforceRateLimit(request, "upload-init", 30, 15 * 60);
     if (!Array.isArray(body.files) || body.files.length === 0 || body.files.length > 20) {
@@ -41,6 +42,7 @@ export default async (request: Request, _context: Context) => {
       if (mode === "multipart") multipartUploadId = await startMultipart(originalKey, spec.type, id);
       const session: UploadSession = {
         id,
+        ownerGuestId: guest.id,
         createdAt,
         expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
         originalName: sanitizePlainText(spec.name, 180).split(/[\\/]/).pop() || "datei",
@@ -88,7 +90,7 @@ export default async (request: Request, _context: Context) => {
         : null;
       results.push({ id, uploadToken, mode, original, preview });
     }
-    return json({ uploads: results });
+    return json({ uploads: results }, 200, guest.cookie ? { "set-cookie": guest.cookie } : {});
   } catch (error) {
     return handleError(error, "upload-init");
   }

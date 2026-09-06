@@ -4,6 +4,7 @@ export type UploadMode = "single" | "multipart" | "netlify";
 
 export interface UploadSession {
   id: string;
+  ownerGuestId: string;
   createdAt: string;
   expiresAt: string;
   originalName: string;
@@ -24,6 +25,7 @@ export interface UploadSession {
 
 export interface MediaRecord {
   id: string;
+  ownerGuestId?: string;
   createdAt: string;
   finalizedAt: string;
   originalName: string;
@@ -40,6 +42,7 @@ export interface MediaRecord {
 
 export interface GuestbookRecord {
   id: string;
+  ownerGuestId?: string;
   createdAt: string;
   name: string | null;
   message: string;

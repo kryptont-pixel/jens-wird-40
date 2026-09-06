@@ -6,6 +6,8 @@ import { clientIp, HttpError } from "./http.js";
 import { rateStore } from "./data.js";
 
 const ADMIN_COOKIE = "jens_admin";
+const GUEST_COOKIE = "jens_guest";
+const GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 const DUMMY_BCRYPT = "$2b$12$C6UzMDM.H6dfI/f/IKcEe.5BqgfDSV4Zf.7WZ6VfK/2x5z9mN7mKS";
 
 function secretKey(): Uint8Array {
@@ -67,15 +69,50 @@ export function clearAdminCookie(): string {
   return `${ADMIN_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${isProduction() ? "; Secure" : ""}`;
 }
 
-export async function requireAdmin(request: Request): Promise<void> {
+export async function isAdmin(request: Request): Promise<boolean> {
   const token = cookieValue(request, ADMIN_COOKIE);
-  if (!token) throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+  if (!token) return false;
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
-    if (payload.scope !== "admin" || payload.sub !== "party-admin") throw new Error("scope");
+    return payload.scope === "admin" && payload.sub === "party-admin";
   } catch {
-    throw new HttpError(401, "SESSION_EXPIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+    return false;
   }
+}
+
+export async function requireAdmin(request: Request): Promise<void> {
+  if (!(await isAdmin(request))) {
+    throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+  }
+}
+
+export async function getGuestId(request: Request): Promise<string | null> {
+  const token = cookieValue(request, GUEST_COOKIE);
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
+    return payload.scope === "guest" && typeof payload.sub === "string" && /^[0-9a-f-]{36}$/i.test(payload.sub)
+      ? payload.sub
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getOrCreateGuest(request: Request): Promise<{ id: string; cookie?: string }> {
+  const existingId = await getGuestId(request);
+  if (existingId) return { id: existingId };
+
+  const id = crypto.randomUUID();
+  const token = await new SignJWT({ scope: "guest" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(id)
+    .setIssuedAt()
+    .setExpirationTime(`${GUEST_COOKIE_MAX_AGE}s`)
+    .setJti(crypto.randomUUID())
+    .sign(secretKey());
+  const cookie = `${GUEST_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${GUEST_COOKIE_MAX_AGE}${isProduction() ? "; Secure" : ""}`;
+  return { id, cookie };
 }
 
 export async function enforceRateLimit(

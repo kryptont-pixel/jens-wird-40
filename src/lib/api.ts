@@ -4,9 +4,28 @@ export class ApiError extends Error {
   }
 }
 
+let guestSessionPromise: Promise<void> | null = null;
+
+async function ensureGuestSession(): Promise<void> {
+  if (!guestSessionPromise) {
+    guestSessionPromise = fetch("/api/guest-session", { credentials: "same-origin" })
+      .then((response) => {
+        if (!response.ok) throw new Error("guest-session");
+      })
+      .catch((error) => {
+        guestSessionPromise = null;
+        throw error;
+      });
+  }
+  return guestSessionPromise;
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
+    if (["gallery", "guestbook", "upload-init"].includes(path.split("?")[0])) {
+      await ensureGuestSession();
+    }
     response = await fetch(`/api/${path}`, {
       credentials: "same-origin",
       ...init,

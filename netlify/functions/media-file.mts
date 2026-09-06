@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { getMedia, mediaBinaryStore } from "./_lib/data.js";
 import { NETLIFY_PART_BYTES, netlifyBlobKey, netlifyPartCount } from "./_lib/config.js";
 import { assertMethod, handleError, HttpError } from "./_lib/http.js";
+import { getGuestId, isAdmin } from "./_lib/security.js";
 
 function safeFilename(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100) || "datei";
@@ -49,6 +50,10 @@ export default async (request: Request, _context: Context) => {
     if (!/^[0-9a-f-]{36}$/i.test(id) || !asset) throw new HttpError(400, "INVALID_MEDIA", "Die Mediendatei ist ungültig.");
     const media = await getMedia(id);
     if (!media || media.status !== "ready" || media.storage !== "netlify") throw new HttpError(404, "MEDIA_NOT_FOUND", "Die Mediendatei ist nicht verfügbar.");
+    const [admin, guestId] = await Promise.all([isAdmin(request), getGuestId(request)]);
+    if (!admin && (!guestId || media.ownerGuestId !== guestId)) {
+      throw new HttpError(404, "MEDIA_NOT_FOUND", "Die Mediendatei ist nicht verfügbar.");
+    }
     if (asset === "preview" && !media.previewKey) throw new HttpError(404, "PREVIEW_NOT_FOUND", "Die Vorschau ist nicht verfügbar.");
     const previewData = asset === "preview" ? new Uint8Array(await mediaBinaryStore().get(netlifyBlobKey("preview", id), { type: "arrayBuffer" })) : null;
     const size = asset === "original" ? media.size : previewData?.byteLength ?? 0;
@@ -61,7 +66,7 @@ export default async (request: Request, _context: Context) => {
       "content-type": asset === "preview" ? "image/webp" : media.mimeType,
       "content-length": String(bytes.byteLength),
       "accept-ranges": "bytes",
-      "cache-control": "private, max-age=300",
+      "cache-control": "private, no-store",
       "content-disposition": `${url.searchParams.get("download") === "1" ? "attachment" : "inline"}; filename="${safeFilename(asset === "preview" ? `${id}.webp` : media.originalName)}"`,
     });
     if (range) headers.set("content-range", `bytes ${start}-${end}/${size}`);

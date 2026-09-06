@@ -33,7 +33,7 @@ export function HomePage() {
         <section className="home-upload content-band"><UploadPanel compact /></section>
         <div className="content-band gallery-band"><Gallery preview /></div>
         <Guestbook />
-        <section className="privacy-strip" aria-label="Datenschutzhinweis"><LockKeyhole aria-hidden="true" /><div><strong>Eure Momente, vernünftig behandelt.</strong><p>Bilder und Videos werden privat bei Hetzner gespeichert. Technische Metadaten und Gästebucheinträge verarbeitet Netlify. Lade bitte nur Inhalte hoch, die du weitergeben darfst.</p></div><Sparkles aria-hidden="true" /></section>
+        <section className="privacy-strip" aria-label="Datenschutzhinweis"><LockKeyhole aria-hidden="true" /><div><strong>Eure Momente, vernünftig behandelt.</strong><p>Andere Gäste sehen weder deine Aufnahmen noch deine Gästebucheinträge. Nur du in diesem Browser und der Admin können sie aufrufen. Lade bitte nur Inhalte hoch, die du weitergeben darfst.</p></div><Sparkles aria-hidden="true" /></section>
       </main>
     </div>
   );

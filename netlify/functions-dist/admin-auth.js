@@ -2491,6 +2491,8 @@ var ALLOWED_MIME_TYPES = [
 ];
 
 // netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
 var allowed = new Set(ALLOWED_MIME_TYPES);
 var images = new Set(IMAGE_MIME_TYPES);
 var videos = new Set(VIDEO_MIME_TYPES);
@@ -2671,15 +2673,15 @@ var DEFAULT_RETRY_DELAY = getEnvironment().get("NODE_ENV") === "test" ? 1 : 5e3;
 var MIN_RETRY_DELAY = 1e3;
 var MAX_RETRY = 5;
 var RATE_LIMIT_HEADER = "X-RateLimit-Reset";
-var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
+var fetchAndRetry = async (fetch, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
   try {
-    const res = await fetch2(url, options);
+    const res = await fetch(url, options);
     const isRetryable = res.status === 429 || res.status >= 500 || getRetryUrl !== void 0 && res.status === 403;
     if (attemptsLeft > 0 && isRetryable) {
       const delay = getDelay(res.headers.get(RATE_LIMIT_HEADER));
       await sleep(delay);
       const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-      return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+      return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
     }
     return res;
   } catch (error) {
@@ -2689,7 +2691,7 @@ var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRe
     const delay = getDelay();
     await sleep(delay);
     const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-    return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+    return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
   }
 };
 var getDelay = (rateLimitReset) => {
@@ -2703,11 +2705,11 @@ var sleep = (ms) => new Promise((resolve) => {
 });
 var SIGNED_URL_ACCEPT_HEADER = "application/json;type=signed-url";
 var Client = class {
-  constructor({ apiURL, consistency, edgeURL, fetch: fetch2, region, siteID, token, uncachedEdgeURL }) {
+  constructor({ apiURL, consistency, edgeURL, fetch, region, siteID, token, uncachedEdgeURL }) {
     this.apiURL = apiURL;
     this.consistency = consistency ?? "eventual";
     this.edgeURL = edgeURL;
-    this.fetch = fetch2 ?? globalThis.fetch;
+    this.fetch = fetch ?? globalThis.fetch;
     this.region = region;
     this.siteID = siteID;
     this.token = token;
@@ -3318,6 +3320,7 @@ var rateStore = () => store("rate-limits");
 
 // netlify/functions/_lib/security.ts
 var ADMIN_COOKIE = "jens_admin";
+var GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 var DUMMY_BCRYPT = "$2b$12$C6UzMDM.H6dfI/f/IKcEe.5BqgfDSV4Zf.7WZ6VfK/2x5z9mN7mKS";
 function secretKey() {
   const value = requireEnv("SESSION_SECRET");
@@ -3345,14 +3348,19 @@ async function createAdminCookie() {
 function clearAdminCookie() {
   return `${ADMIN_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${isProduction() ? "; Secure" : ""}`;
 }
-async function requireAdmin(request) {
+async function isAdmin(request) {
   const token = cookieValue(request, ADMIN_COOKIE);
-  if (!token) throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+  if (!token) return false;
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
-    if (payload.scope !== "admin" || payload.sub !== "party-admin") throw new Error("scope");
+    return payload.scope === "admin" && payload.sub === "party-admin";
   } catch {
-    throw new HttpError(401, "SESSION_EXPIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
+    return false;
+  }
+}
+async function requireAdmin(request) {
+  if (!await isAdmin(request)) {
+    throw new HttpError(401, "ADMIN_REQUIRED", "Deine Adminsitzung ist abgelaufen. Bitte melde dich erneut an.");
   }
 }
 async function enforceRateLimit(request, scope, limit, windowSeconds) {

@@ -35987,6 +35987,14 @@ var ALLOWED_MIME_TYPES = [
 ];
 
 // netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
+function mediaStorageBackend() {
+  return process.env.MEDIA_STORAGE?.trim().toLowerCase() === "netlify" ? "netlify" : "hetzner";
+}
+function netlifyPartCount(size) {
+  return Math.ceil(size / NETLIFY_PART_BYTES);
+}
 var allowed = new Set(ALLOWED_MIME_TYPES);
 var images = new Set(IMAGE_MIME_TYPES);
 var videos = new Set(VIDEO_MIME_TYPES);
@@ -36088,6 +36096,30 @@ var JOSEError = class extends Error {
     super(message2, options), this.name = this.constructor.name, Error.captureStackTrace?.(this, this.constructor);
   }
 };
+var JWTClaimValidationFailed = class extends JOSEError {
+  static code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+  code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+  claim;
+  reason;
+  payload;
+  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+    super(message2, { cause: { claim, reason, payload } }), this.claim = claim, this.reason = reason, this.payload = payload;
+  }
+};
+var JWTExpired = class extends JOSEError {
+  static code = "ERR_JWT_EXPIRED";
+  code = "ERR_JWT_EXPIRED";
+  claim;
+  reason;
+  payload;
+  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+    super(message2, { cause: { claim, reason, payload } }), this.claim = claim, this.reason = reason, this.payload = payload;
+  }
+};
+var JOSEAlgNotAllowed = class extends JOSEError {
+  static code = "ERR_JOSE_ALG_NOT_ALLOWED";
+  code = "ERR_JOSE_ALG_NOT_ALLOWED";
+};
 var JOSENotSupported = class extends JOSEError {
   static code = "ERR_JOSE_NOT_SUPPORTED";
   code = "ERR_JOSE_NOT_SUPPORTED";
@@ -36099,6 +36131,13 @@ var JWSInvalid = class extends JOSEError {
 var JWTInvalid = class extends JOSEError {
   static code = "ERR_JWT_INVALID";
   code = "ERR_JWT_INVALID";
+};
+var JWSSignatureVerificationFailed = class extends JOSEError {
+  static code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+  code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+  constructor(message2 = "signature verification failed", options) {
+    super(message2, options);
+  }
 };
 
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/util/base64url.js
@@ -36136,7 +36175,37 @@ function assertNotSet(value, name) {
   if (value !== void 0)
     throw new TypeError(`${name} can only be called once`);
 }
+function decodeBase64url(value, label, ErrorClass) {
+  try {
+    return decode(value);
+  } catch {
+    throw new ErrorClass(`Failed to base64url decode the ${label}`);
+  }
+}
+function encodeBase64url(value, label, ErrorClass) {
+  try {
+    return encode(value);
+  } catch {
+    throw new ErrorClass(`The ${label} is not a valid base64url string`);
+  }
+}
+function parseJoseHeader(b64, ErrorClass, message2) {
+  let parsed;
+  try {
+    parsed = JSON.parse(strictDecoder.decode(decode(b64)));
+  } catch {
+    throw new ErrorClass(message2);
+  }
+  if (!isObject(parsed))
+    throw new ErrorClass(message2);
+  return parsed;
+}
 var JWS_RECOGNIZED = { __proto__: null, b64: true };
+function validateAlgorithms(option, algorithms) {
+  if (algorithms !== void 0 && (!Array.isArray(algorithms) || algorithms.some((s2) => typeof s2 != "string")))
+    throw new TypeError(`"${option}" option must be an array of strings`);
+  return algorithms === void 0 ? void 0 : new Set(algorithms);
+}
 function validateCritDuplicates(Err, protectedHeader) {
   const { crit } = protectedHeader ?? {};
   if (Array.isArray(crit) && new Set(crit).size !== crit.length)
@@ -36390,6 +36459,58 @@ function jwsAlgorithm(alg) {
   return entry;
 }
 
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_verify.js
+function prepareVerify(options) {
+  return [options && validateAlgorithms("algorithms", options.algorithms), options?.crit];
+}
+function parseProtectedHeader(encodedProtected) {
+  return encodedProtected === void 0 ? {} : parseJoseHeader(encodedProtected, JWSInvalid, "JWS Protected Header is invalid");
+}
+function encodeCompactUnencodedPayload(payload) {
+  try {
+    return encode(payload);
+  } catch {
+    throw new JWSInvalid("JWS Compact Serialization payload must use only ASCII characters");
+  }
+}
+async function verifySignature(jws, shared, key, encodeUnencodedPayload, parsedProtected) {
+  const { protected: encodedProtected, header, payload: inputPayload } = jws, parsedProt = parsedProtected ?? parseProtectedHeader(encodedProtected);
+  if (!isDisjoint(parsedProt, header))
+    throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
+  const joseHeader = { ...parsedProt, ...header }, b64 = validateB64(parsedProt, validateCrit(JWSInvalid, JWS_RECOGNIZED, shared[1], parsedProt, joseHeader)), { alg } = joseHeader;
+  if (typeof alg != "string" || !alg)
+    throw new JWSInvalid('JWS "alg" (Algorithm) Header Parameter missing or invalid');
+  if (shared[0] && !shared[0].has(alg))
+    throw new JOSEAlgNotAllowed('"alg" (Algorithm) Header Parameter value not allowed');
+  if (b64) {
+    if (typeof inputPayload != "string")
+      throw new JWSInvalid("JWS Payload must be a string");
+  } else if (typeof inputPayload != "string" && !(inputPayload instanceof Uint8Array))
+    throw new JWSInvalid("JWS Payload must be a string or an Uint8Array instance");
+  const signingPayload = b64 || typeof inputPayload != "string" ? inputPayload : encodeUnencodedPayload(inputPayload);
+  let resolvedKey = false;
+  typeof key == "function" && (key = await key(parsedProt, jws), resolvedKey = true);
+  const entry = jwsAlgorithm(alg), data = concat(encodedProtected !== void 0 ? encode(encodedProtected) : new Uint8Array(), encode("."), typeof signingPayload == "string" ? shared[2] ??= encodeBase64url(signingPayload, "payload", JWSInvalid) : signingPayload), signature = decodeBase64url(jws.signature, "signature", JWSInvalid), k5 = await prepareKey(entry, key, "verify"), cryptoKey = await rawKey(k5, entry.subtle, "verify");
+  entry.minRsaBits && checkModulusLength(entry.alg, cryptoKey);
+  let verified = false;
+  try {
+    verified = await crypto.subtle.verify(entry.signing, cryptoKey, signature, data);
+  } catch {
+  }
+  if (!verified)
+    throw new JWSSignatureVerificationFailed();
+  const result = { payload: typeof signingPayload == "string" ? decodeBase64url(signingPayload, "payload", JWSInvalid) : signingPayload };
+  return encodedProtected !== void 0 && (result.protectedHeader = parsedProt), header !== void 0 && (result.unprotectedHeader = header), resolvedKey ? [{ ...result, key: k5 }, b64] : [result, b64];
+}
+async function verifyCompact(jws, shared, key) {
+  if (jws instanceof Uint8Array && (jws = decoder.decode(jws)), typeof jws != "string")
+    throw new JWSInvalid("Compact JWS must be a string or Uint8Array");
+  const { 0: protectedHeader, 1: payload, 2: signature, length } = jws.split(".");
+  if (length !== 3)
+    throw new JWSInvalid("Invalid Compact JWS");
+  return verifySignature({ payload, protected: protectedHeader, signature }, shared, key, encodeCompactUnencodedPayload);
+}
+
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jwt_claims_set.js
 var epoch = (date2) => Math.floor(date2.getTime() / 1e3);
 var multipliers = {
@@ -36401,6 +36522,7 @@ var multipliers = {
   y: 31557600
 };
 var REGEX = /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
+var checkFailed = "check_failed";
 function invalidDuration() {
   throw new TypeError("Invalid time period format");
 }
@@ -36426,6 +36548,64 @@ function validateAudienceClaim(value) {
 }
 function numericDate(value, label) {
   return typeof value == "number" ? validateInput(label, value) : value instanceof Date ? validateInput(label, epoch(value)) : epoch(/* @__PURE__ */ new Date()) + secs(value);
+}
+var normalizeTyp = (value) => {
+  const normalized = value.toLowerCase();
+  return value.includes("/") ? normalized : `application/${normalized}`;
+};
+var checkAudiencePresence = (audPayload, audOption) => typeof audPayload == "string" ? audOption.includes(audPayload) : Array.isArray(audPayload) ? audOption.some((aud) => audPayload.includes(aud)) : false;
+function validateNumericDate(payload, claim, required = false) {
+  const value = payload[claim];
+  if (!(value === void 0 && !required)) {
+    if (typeof value != "number")
+      throw new JWTClaimValidationFailed(`"${claim}" claim must be a number`, payload, claim, "invalid");
+    return value;
+  }
+}
+function unexpectedClaim(payload, claim) {
+  throw new JWTClaimValidationFailed(`unexpected "${claim}" claim value`, payload, claim, checkFailed);
+}
+function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
+  let payload;
+  try {
+    payload = JSON.parse(strictDecoder.decode(encodedPayload));
+  } catch {
+  }
+  if (!isObject(payload))
+    throw new JWTInvalid("JWT Claims Set must be a top-level JSON object");
+  const { typ } = options;
+  if (typ !== void 0 && (typeof protectedHeader.typ != "string" || normalizeTyp(protectedHeader.typ) !== normalizeTyp(typ)))
+    throw new JWTClaimValidationFailed('unexpected "typ" JWT header value', payload, "typ", checkFailed);
+  const { requiredClaims = [], issuer, subject, audience, maxTokenAge } = options, presenceCheck = [...requiredClaims];
+  maxTokenAge !== void 0 && presenceCheck.push("iat"), audience !== void 0 && presenceCheck.push("aud"), subject !== void 0 && presenceCheck.push("sub"), issuer !== void 0 && presenceCheck.push("iss");
+  for (const claim of new Set(presenceCheck.reverse()))
+    if (!Object.hasOwn(payload, claim))
+      throw new JWTClaimValidationFailed(`missing required "${claim}" claim`, payload, claim, "missing");
+  issuer !== void 0 && !(Array.isArray(issuer) ? issuer : [issuer]).includes(payload.iss) && unexpectedClaim(payload, "iss"), subject !== void 0 && payload.sub !== subject && unexpectedClaim(payload, "sub"), audience !== void 0 && !checkAudiencePresence(payload.aud, typeof audience == "string" ? [audience] : audience) && unexpectedClaim(payload, "aud");
+  const { clockTolerance } = options;
+  let tolerance = 0;
+  if (typeof clockTolerance == "string")
+    tolerance = secs(clockTolerance);
+  else if (clockTolerance !== void 0) {
+    if (typeof clockTolerance != "number")
+      throw new TypeError("Invalid clockTolerance option type");
+    tolerance = clockTolerance;
+  }
+  validateInput("clockTolerance option", tolerance);
+  const { currentDate } = options, now = validateInput("currentDate option", epoch(currentDate === void 0 ? /* @__PURE__ */ new Date() : currentDate)), iat = validateNumericDate(payload, "iat", maxTokenAge !== void 0), nbf = validateNumericDate(payload, "nbf");
+  if (nbf !== void 0 && nbf > now + tolerance)
+    throw new JWTClaimValidationFailed('"nbf" claim timestamp check failed', payload, "nbf", checkFailed);
+  const exp = validateNumericDate(payload, "exp");
+  if (exp !== void 0 && exp <= now - tolerance)
+    throw new JWTExpired('"exp" claim timestamp check failed', payload, "exp", checkFailed);
+  if (maxTokenAge !== void 0) {
+    const age = now - iat, max = validateInput("maxTokenAge option", typeof maxTokenAge == "number" ? maxTokenAge : secs(maxTokenAge));
+    if (age - tolerance > max)
+      throw new JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", checkFailed);
+    if (age < -tolerance)
+      throw new JWTClaimValidationFailed('"iat" claim timestamp check failed (it should be in the past)', payload, "iat", checkFailed);
+  }
+  return payload;
 }
 var producerPayloads;
 function producerPayload(producer) {
@@ -36469,6 +36649,15 @@ var JWTClaimsBuilder = class {
     return value === void 0 ? payload.iat = epoch(/* @__PURE__ */ new Date()) : typeof value == "string" ? payload.iat = validateInput("setIssuedAt", epoch(/* @__PURE__ */ new Date()) + secs(value)) : payload.iat = numericDate(value, "setIssuedAt"), this;
   }
 };
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/jwt/verify.js
+async function jwtVerify(jwt, key, options) {
+  const [verified, b64] = await verifyCompact(jwt, prepareVerify(options), key);
+  if (!b64)
+    throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
+  const payload = validateClaimsSet(verified.protectedHeader, verified.payload, options);
+  return { ...verified, payload };
+}
 
 // node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_sign.js
 async function createSignature(input, key, rejectUnencoded) {
@@ -36749,15 +36938,15 @@ var DEFAULT_RETRY_DELAY = getEnvironment().get("NODE_ENV") === "test" ? 1 : 5e3;
 var MIN_RETRY_DELAY = 1e3;
 var MAX_RETRY = 5;
 var RATE_LIMIT_HEADER = "X-RateLimit-Reset";
-var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
+var fetchAndRetry = async (fetch, url, options, attemptsLeft = MAX_RETRY, getRetryUrl) => {
   try {
-    const res = await fetch2(url, options);
+    const res = await fetch(url, options);
     const isRetryable = res.status === 429 || res.status >= 500 || getRetryUrl !== void 0 && res.status === 403;
     if (attemptsLeft > 0 && isRetryable) {
       const delay = getDelay(res.headers.get(RATE_LIMIT_HEADER));
       await sleep(delay);
       const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-      return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+      return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
     }
     return res;
   } catch (error2) {
@@ -36767,7 +36956,7 @@ var fetchAndRetry = async (fetch2, url, options, attemptsLeft = MAX_RETRY, getRe
     const delay = getDelay();
     await sleep(delay);
     const retryUrl = getRetryUrl ? await getRetryUrl() : url;
-    return fetchAndRetry(fetch2, retryUrl, options, attemptsLeft - 1, getRetryUrl);
+    return fetchAndRetry(fetch, retryUrl, options, attemptsLeft - 1, getRetryUrl);
   }
 };
 var getDelay = (rateLimitReset) => {
@@ -36781,11 +36970,11 @@ var sleep = (ms) => new Promise((resolve) => {
 });
 var SIGNED_URL_ACCEPT_HEADER = "application/json;type=signed-url";
 var Client = class {
-  constructor({ apiURL, consistency, edgeURL, fetch: fetch2, region, siteID, token, uncachedEdgeURL }) {
+  constructor({ apiURL, consistency, edgeURL, fetch, region, siteID, token, uncachedEdgeURL }) {
     this.apiURL = apiURL;
     this.consistency = consistency ?? "eventual";
     this.edgeURL = edgeURL;
-    this.fetch = fetch2 ?? globalThis.fetch;
+    this.fetch = fetch ?? globalThis.fetch;
     this.region = region;
     this.siteID = siteID;
     this.token = token;
@@ -37399,39 +37588,41 @@ async function setUploadSession(session) {
 }
 
 // netlify/functions/_lib/security.ts
+var GUEST_COOKIE = "jens_guest";
+var GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 function secretKey() {
   const value = requireEnv("SESSION_SECRET");
   if (value.length < 32) throw new Error("Serverkonfiguration ung\xFCltig: SESSION_SECRET ist zu kurz.");
   return new TextEncoder().encode(value);
 }
+function cookieValue(request, name) {
+  const cookie = request.headers.get("cookie") ?? "";
+  for (const pair of cookie.split(";")) {
+    const [key, ...value] = pair.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return null;
+}
 async function issueUploadToken(sessionId) {
   return new SignJWT({ scope: "upload" }).setProtectedHeader({ alg: "HS256" }).setSubject(sessionId).setIssuedAt().setExpirationTime("2h").setJti(crypto.randomUUID()).sign(secretKey());
 }
-async function verifyTurnstile(request, token) {
-  if (process.env.ALLOW_TEST_BYPASS === "true" && !isProduction() && token === "test-bypass") return;
-  if (typeof token !== "string" || token.length < 10) {
-    throw new HttpError(400, "TURNSTILE_REQUIRED", "Bitte best\xE4tige kurz, dass du kein Bot bist.");
+async function getGuestId(request) {
+  const token = cookieValue(request, GUEST_COOKIE);
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
+    return payload.scope === "guest" && typeof payload.sub === "string" && /^[0-9a-f-]{36}$/i.test(payload.sub) ? payload.sub : null;
+  } catch {
+    return null;
   }
-  const secret = requireEnv("TURNSTILE_SECRET_KEY");
-  const form = new URLSearchParams({
-    secret,
-    response: token,
-    remoteip: clientIp(request),
-    idempotency_key: crypto.randomUUID()
-  });
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: form,
-    signal: AbortSignal.timeout(8e3)
-  });
-  if (!response.ok) throw new HttpError(503, "TURNSTILE_UNAVAILABLE", "Die Botpr\xFCfung ist gerade nicht erreichbar. Bitte versuche es erneut.");
-  const result = await response.json();
-  if (!result.success) throw new HttpError(403, "TURNSTILE_FAILED", "Die Botpr\xFCfung ist fehlgeschlagen. Bitte versuche es erneut.");
-  const expectedHost = process.env.PUBLIC_SITE_URL ? new URL(process.env.PUBLIC_SITE_URL).hostname : null;
-  if (isProduction() && expectedHost && result.hostname !== expectedHost) {
-    throw new HttpError(403, "TURNSTILE_HOST_MISMATCH", "Die Botpr\xFCfung ist f\xFCr diese Website nicht g\xFCltig.");
-  }
+}
+async function getOrCreateGuest(request) {
+  const existingId = await getGuestId(request);
+  if (existingId) return { id: existingId };
+  const id = crypto.randomUUID();
+  const token = await new SignJWT({ scope: "guest" }).setProtectedHeader({ alg: "HS256" }).setSubject(id).setIssuedAt().setExpirationTime(`${GUEST_COOKIE_MAX_AGE}s`).setJti(crypto.randomUUID()).sign(secretKey());
+  const cookie = `${GUEST_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${GUEST_COOKIE_MAX_AGE}${isProduction() ? "; Secure" : ""}`;
+  return { id, cookie };
 }
 async function enforceRateLimit(request, scope, limit, windowSeconds) {
   const now = Date.now();
@@ -37537,13 +37728,17 @@ var upload_init_default = async (request, _context) => {
   try {
     assertMethod(request, "POST");
     assertSameOrigin(request);
+    const guest = await getOrCreateGuest(request);
     const body = await readJson(request, 128e3);
     await enforceRateLimit(request, "upload-init", 30, 15 * 60);
-    await verifyTurnstile(request, body.turnstileToken);
     if (!Array.isArray(body.files) || body.files.length === 0 || body.files.length > 20) {
       throw new HttpError(400, "INVALID_FILE_COUNT", "Bitte w\xE4hle zwischen 1 und 20 Dateien aus.");
     }
     const specs = body.files.map(validateUploadSpec);
+    const storage = mediaStorageBackend();
+    if (storage === "netlify" && specs.some((spec) => spec.size > NETLIFY_MAX_FILE_BYTES)) {
+      throw new HttpError(413, "NETLIFY_FILE_TOO_LARGE", "Im Netlify-Testbetrieb sind Dateien bis 20 MB m\xF6glich. F\xFCr gr\xF6\xDFere Videos bitte sp\xE4ter Hetzner aktivieren.");
+    }
     const results = [];
     for (const spec of specs) {
       const id = crypto.randomUUID();
@@ -37551,13 +37746,14 @@ var upload_init_default = async (request, _context) => {
       const date2 = createdAt.slice(0, 7).replace("-", "/");
       const originalKey = `originals/${date2}/${crypto.randomUUID()}.${extensionFor(spec.type)}`;
       const previewKey = spec.wantsPreview ? `previews/${date2}/${crypto.randomUUID()}.webp` : null;
-      const mode = spec.size > EVENT.multipartThresholdBytes ? "multipart" : "single";
+      const mode = storage === "netlify" ? "netlify" : spec.size > EVENT.multipartThresholdBytes ? "multipart" : "single";
       let multipartUploadId = null;
-      const partSize = mode === "multipart" ? EVENT.multipartPartBytes : null;
-      const totalParts = partSize ? Math.ceil(spec.size / partSize) : null;
+      const partSize = mode === "netlify" ? NETLIFY_PART_BYTES : mode === "multipart" ? EVENT.multipartPartBytes : null;
+      const totalParts = partSize ? mode === "netlify" ? netlifyPartCount(spec.size) : Math.ceil(spec.size / partSize) : null;
       if (mode === "multipart") multipartUploadId = await startMultipart(originalKey, spec.type, id);
       const session = {
         id,
+        ownerGuestId: guest.id,
         createdAt,
         expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1e3).toISOString(),
         originalName: sanitizePlainText(spec.name, 180).split(/[\\/]/).pop() || "datei",
@@ -37568,6 +37764,7 @@ var upload_init_default = async (request, _context) => {
         declaredSize: spec.size,
         kind: spec.kind,
         mode,
+        storage,
         multipartUploadId,
         partSize,
         totalParts,
@@ -37576,7 +37773,14 @@ var upload_init_default = async (request, _context) => {
       };
       await setUploadSession(session);
       const uploadToken = await issueUploadToken(id);
-      const original = mode === "single" ? await signSingleUpload(originalKey, spec.type, id) : {
+      const original = mode === "netlify" ? {
+        partSize: NETLIFY_PART_BYTES,
+        parts: Array.from({ length: totalParts }, (_, index) => ({
+          partNumber: index + 1,
+          url: `/api/upload-netlify?sessionId=${encodeURIComponent(id)}&kind=original&partNumber=${index + 1}`
+        })),
+        expiresIn: 7200
+      } : mode === "single" ? await signSingleUpload(originalKey, spec.type, id) : {
         partSize,
         parts: await Promise.all(
           Array.from({ length: totalParts }, async (_, index) => ({
@@ -37586,10 +37790,10 @@ var upload_init_default = async (request, _context) => {
         ),
         expiresIn: 600
       };
-      const preview = previewKey ? await signSingleUpload(previewKey, "image/webp", id) : null;
+      const preview = previewKey ? storage === "netlify" ? { url: `/api/upload-netlify?sessionId=${encodeURIComponent(id)}&kind=preview&partNumber=1`, headers: {}, expiresIn: 7200 } : await signSingleUpload(previewKey, "image/webp", id) : null;
       results.push({ id, uploadToken, mode, original, preview });
     }
-    return json({ uploads: results });
+    return json({ uploads: results }, 200, guest.cookie ? { "set-cookie": guest.cookie } : {});
   } catch (error2) {
     return handleError(error2, "upload-init");
   }

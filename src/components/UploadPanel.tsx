@@ -195,7 +195,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
   if (compact && !items.length) {
     return (
       <div className="upload-compact">
-        <div><p className="section-kicker">Dein Blick auf den Abend</p><h2>Ein Foto. Zwei Klicks. Fertig.</h2><p>Ohne Anmeldung, ohne Namensfeld – direkt vom Handy in unsere gemeinsame Galerie.</p></div>
+        <div><p className="section-kicker">Dein Blick auf den Abend</p><h2>Ein Foto. Zwei Klicks. Fertig.</h2><p>Ohne Anmeldung, ohne Namensfeld – direkt vom Handy in deine persönliche Galerie.</p></div>
         <Link className="button button-primary button-large" to="/upload"><Camera aria-hidden="true" /> Jetzt hochladen</Link>
       </div>
     );
@@ -240,14 +240,14 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
         </article>)}
       </div>}
 
-      {completionMessage && <div className="success-card" role="status"><Check aria-hidden="true" /><div><strong>{completionMessage}</strong><span>Die Galerie aktualisiert sich automatisch.</span></div><div><button className="button button-secondary" type="button" onClick={() => { setItems([]); sessions.current.clear(); }}>Weitere Bilder hochladen</button><Link className="button button-ghost" to="/galerie">Zur Galerie</Link></div></div>}
+      {completionMessage && <div className="success-card" role="status"><Check aria-hidden="true" /><div><strong>{completionMessage}</strong><span>Deine Galerie aktualisiert sich automatisch.</span></div><div><button className="button button-secondary" type="button" onClick={() => { setItems([]); sessions.current.clear(); }}>Weitere Bilder hochladen</button><Link className="button button-ghost" to="/galerie">Zu meinen Bildern</Link></div></div>}
 
       {items.length > 0 && successes !== items.length && <div className="upload-submit">
         <button className="button button-primary button-large" type="button" onClick={() => startUploads()} disabled={!ready || active}>
           {active ? <><LoaderCircle className="spin" aria-hidden="true" /> Upload läuft …</> : <>Jetzt hochladen</>}
         </button>
       </div>}
-      <p className="upload-legal">Mit dem Upload bestätigst du, dass du die Inhalte teilen darfst. Originale bleiben privat gespeichert; öffentlich angezeigt werden nur Galerievorschauen und bewusst gestartete Videos.</p>
+      <p className="upload-legal">Mit dem Upload bestätigst du, dass du die Inhalte teilen darfst. Deine Aufnahmen sind nur in diesem Browser und für den Admin sichtbar.</p>
     </section>
   );
 }

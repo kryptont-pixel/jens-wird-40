@@ -36584,16 +36584,6 @@ var getStore = (input, options) => {
   );
 };
 
-// netlify/functions/_lib/data.ts
-function store(name) {
-  return getStore({ name, consistency: "strong" });
-}
-var uploadStore = () => store("upload-sessions");
-var rateStore = () => store("rate-limits");
-
-// netlify/functions/_lib/s3.ts
-var import_client_s3 = __toESM(require_dist_cjs16(), 1);
-
 // src/config/event.ts
 var EVENT = {
   name: "Jens",
@@ -36628,6 +36618,14 @@ var ALLOWED_MIME_TYPES = [
 ];
 
 // netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
+function netlifyPartCount(size) {
+  return Math.ceil(size / NETLIFY_PART_BYTES);
+}
+function netlifyBlobKey(kind, sessionId, partNumber = 1) {
+  return `${kind}/${sessionId}/${partNumber}`;
+}
 var allowed = new Set(ALLOWED_MIME_TYPES);
 var images = new Set(IMAGE_MIME_TYPES);
 var videos = new Set(VIDEO_MIME_TYPES);
@@ -36636,6 +36634,22 @@ function requireEnv(name) {
   if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
   return value;
 }
+
+// netlify/functions/_lib/data.ts
+function store(name) {
+  return getStore({ name, consistency: "strong" });
+}
+var uploadStore = () => store("upload-sessions");
+var rateStore = () => store("rate-limits");
+var mediaBinaryStore = () => store("media-binary");
+async function deleteNetlifyUpload(session) {
+  const keys = Array.from({ length: netlifyPartCount(session.declaredSize) }, (_, index) => netlifyBlobKey("original", session.id, index + 1));
+  if (session.expectedPreview) keys.push(netlifyBlobKey("preview", session.id));
+  await Promise.all(keys.map((key) => mediaBinaryStore().delete(key)));
+}
+
+// netlify/functions/_lib/s3.ts
+var import_client_s3 = __toESM(require_dist_cjs16(), 1);
 
 // netlify/functions/_lib/http.ts
 var HttpError = class extends Error {
@@ -36703,8 +36717,11 @@ var cleanup_uploads_default = async (_request, _context) => {
     const oldFinished = ["ready", "aborted", "rejected"].includes(session.status) && new Date(session.createdAt).getTime() < now - 7 * 864e5;
     if (!expired && !oldFinished) continue;
     if (expired && ["uploading", "finalizing"].includes(session.status)) {
-      if (session.multipartUploadId) await abortMultipart(session.originalKey, session.multipartUploadId).catch(() => void 0);
-      await deleteObjects([session.originalKey, session.previewKey]).catch(() => void 0);
+      if (session.storage === "netlify") await deleteNetlifyUpload(session).catch(() => void 0);
+      else {
+        if (session.multipartUploadId) await abortMultipart(session.originalKey, session.multipartUploadId).catch(() => void 0);
+        await deleteObjects([session.originalKey, session.previewKey]).catch(() => void 0);
+      }
     }
     await uploads.delete(key);
     cleaned += 1;

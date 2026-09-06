@@ -100,6 +100,7 @@ export default async (request: Request, _context: Context) => {
     const finalizedAt = new Date().toISOString();
     const record: MediaRecord = {
       id: mediaId,
+      ownerGuestId: session.ownerGuestId,
       createdAt: session.createdAt,
       finalizedAt,
       originalName: session.originalName,

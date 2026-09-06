@@ -814,8 +814,8 @@ var init_transport = __esm({
 var invalidFunction;
 var init_invalidFunction = __esm({
   "node_modules/.pnpm/@smithy+core@3.33.3/node_modules/@smithy/core/dist-es/submodules/client/invalid-dependency/invalidFunction.js"() {
-    invalidFunction = (message) => () => {
-      throw new Error(message);
+    invalidFunction = (message2) => () => {
+      throw new Error(message2);
     };
   }
 });
@@ -824,7 +824,7 @@ var init_invalidFunction = __esm({
 var invalidProvider;
 var init_invalidProvider = __esm({
   "node_modules/.pnpm/@smithy+core@3.33.3/node_modules/@smithy/core/dist-es/submodules/client/invalid-dependency/invalidProvider.js"() {
-    invalidProvider = (message) => () => Promise.reject(message);
+    invalidProvider = (message2) => () => Promise.reject(message2);
   }
 });
 
@@ -914,9 +914,9 @@ var init_poller = __esm({
         if (currentAttempt > 0) {
           const delayMs = exponentialBackoffWithJitter(minDelayMs, maxDelayMs, currentAttempt, waitUntil);
           if (abortController?.signal?.aborted || abortSignal?.aborted) {
-            const message = "AbortController signal aborted.";
-            observedResponses[message] |= 0;
-            observedResponses[message] += 1;
+            const message2 = "AbortController signal aborted.";
+            observedResponses[message2] |= 0;
+            observedResponses[message2] += 1;
             return { state: WaiterState.ABORTED, observedResponses };
           }
           if (Date.now() + delayMs > waitUntil) {
@@ -926,9 +926,9 @@ var init_poller = __esm({
         }
         const { state: state2, reason } = await acceptorChecks(client, input);
         if (reason) {
-          const message = createMessageFromResponse(reason);
-          observedResponses[message] |= 0;
-          observedResponses[message] += 1;
+          const message2 = createMessageFromResponse(reason);
+          observedResponses[message2] |= 0;
+          observedResponses[message2] += 1;
         }
         if (state2 !== WaiterState.RETRY) {
           return { state: state2, reason, final: reason, observedResponses };
@@ -2204,8 +2204,8 @@ var init_exceptions = __esm({
           exception[k5] = v;
         }
       });
-      const message = exception.message || exception.Message || "UnknownError";
-      exception.message = message;
+      const message2 = exception.message || exception.Message || "UnknownError";
+      exception.message = message2;
       delete exception.Message;
       return exception;
     };
@@ -3064,8 +3064,8 @@ var init_parse_utils = __esm({
       }
       return expectByte(value);
     };
-    stackTraceWarning = (message) => {
-      return String(new TypeError(message).stack || message).split("\n").slice(0, 5).filter((s2) => !s2.includes("stackTraceWarning")).join("\n");
+    stackTraceWarning = (message2) => {
+      return String(new TypeError(message2).stack || message2).split("\n").slice(0, 5).filter((s2) => !s2.includes("stackTraceWarning")).join("\n");
     };
     logger = {
       warn: console.warn
@@ -3696,7 +3696,7 @@ var init_ProviderError = __esm({
     ProviderError = class _ProviderError extends Error {
       name = "ProviderError";
       tryNextLink;
-      constructor(message, options = true) {
+      constructor(message2, options = true) {
         let logger2;
         let tryNextLink = true;
         if (typeof options === "boolean") {
@@ -3706,10 +3706,10 @@ var init_ProviderError = __esm({
           logger2 = options.logger;
           tryNextLink = options.tryNextLink ?? true;
         }
-        super(message);
+        super(message2);
         this.tryNextLink = tryNextLink;
         Object.setPrototypeOf(this, _ProviderError.prototype);
-        logger2?.debug?.(`@smithy/property-provider ${tryNextLink ? "->" : "(!)"} ${message}`);
+        logger2?.debug?.(`@smithy/property-provider ${tryNextLink ? "->" : "(!)"} ${message2}`);
       }
       static from(error2, options = true) {
         return Object.assign(new this(error2.message, options), error2);
@@ -3725,8 +3725,8 @@ var init_CredentialsProviderError = __esm({
     init_ProviderError();
     CredentialsProviderError = class _CredentialsProviderError extends ProviderError {
       name = "CredentialsProviderError";
-      constructor(message, options = true) {
-        super(message, options);
+      constructor(message2, options = true) {
+        super(message2, options);
         Object.setPrototypeOf(this, _CredentialsProviderError.prototype);
       }
     };
@@ -3740,8 +3740,8 @@ var init_TokenProviderError = __esm({
     init_ProviderError();
     TokenProviderError = class _TokenProviderError extends ProviderError {
       name = "TokenProviderError";
-      constructor(message, options = true) {
-        super(message, options);
+      constructor(message2, options = true) {
+        super(message2, options);
         Object.setPrototypeOf(this, _TokenProviderError.prototype);
       }
     };
@@ -5275,8 +5275,8 @@ var EndpointError;
 var init_EndpointError = __esm({
   "node_modules/.pnpm/@smithy+core@3.33.3/node_modules/@smithy/core/dist-es/submodules/endpoints/util-endpoints/types/EndpointError.js"() {
     EndpointError = class extends Error {
-      constructor(message) {
-        super(message);
+      constructor(message2) {
+        super(message2);
         this.name = "EndpointError";
       }
     };
@@ -6338,7 +6338,7 @@ var init_createChecksumStream_browser = __esm({
       if (!isReadableStream(source)) {
         throw new Error(`@smithy/util-stream: unsupported source type ${source?.constructor?.name ?? source} in ChecksumStream.`);
       }
-      const encoder2 = base64Encoder ?? toBase642;
+      const encoder3 = base64Encoder ?? toBase642;
       if (typeof TransformStream !== "function") {
         throw new Error("@smithy/util-stream: unable to instantiate ChecksumStream because API unavailable: ReadableStream/TransformStream.");
       }
@@ -6351,7 +6351,7 @@ var init_createChecksumStream_browser = __esm({
         },
         async flush(controller) {
           const digest3 = await checksum.digest();
-          const received = encoder2(digest3);
+          const received = encoder3(digest3);
           if (expectedChecksum !== received) {
             const error2 = new Error(`Checksum mismatch: expected "${expectedChecksum}" but received "${received}" in response header "${checksumSourceLocation}".`);
             controller.error(error2);
@@ -6931,8 +6931,8 @@ var init_sdk_stream_mixin = __esm({
           if (encoding === void 0 || Buffer.isEncoding(encoding)) {
             return fromArrayBuffer(buf.buffer, buf.byteOffset, buf.byteLength).toString(encoding);
           } else {
-            const decoder = new TextDecoder(encoding);
-            return decoder.decode(buf);
+            const decoder2 = new TextDecoder(encoding);
+            return decoder2.decode(buf);
           }
         },
         transformToWebStream: () => {
@@ -7810,8 +7810,8 @@ var init_Sha256WebCrypto = __esm({
           if (this.secret) {
             this.finished = true;
             const key = await subtle.importKey("raw", this.secret, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-            const sig = await subtle.sign("HMAC", key, data);
-            return new Uint8Array(sig);
+            const sig2 = await subtle.sign("HMAC", key, data);
+            return new Uint8Array(sig2);
           }
           const hash = await subtle.digest("SHA-256", data);
           return new Uint8Array(hash);
@@ -8171,18 +8171,18 @@ var init_EventStreamCodec = __esm({
         this.messageBuffer = [];
         this.isEndOfStream = false;
       }
-      feed(message) {
-        this.messageBuffer.push(this.decode(message));
+      feed(message2) {
+        this.messageBuffer.push(this.decode(message2));
       }
       endOfStream() {
         this.isEndOfStream = true;
       }
       getMessage() {
-        const message = this.messageBuffer.pop();
+        const message2 = this.messageBuffer.pop();
         const isEndOfStream = this.isEndOfStream;
         return {
           getMessage() {
-            return message;
+            return message2;
           },
           isEndOfStream() {
             return isEndOfStream;
@@ -8218,8 +8218,8 @@ var init_EventStreamCodec = __esm({
         view.setUint32(length - 4, checksum.digestSync(), false);
         return out;
       }
-      decode(message) {
-        const { headers, body } = splitMessage(message);
+      decode(message2) {
+        const { headers, body } = splitMessage(message2);
         return { headers: this.headerMarshaller.parse(headers), body };
       }
       formatHeaders(rawHeaders) {
@@ -8289,8 +8289,8 @@ var init_SmithyMessageDecoderStream = __esm({
         return this.asyncIterator();
       }
       async *asyncIterator() {
-        for await (const message of this.options.messageStream) {
-          const deserialized = await this.options.deserializer(message);
+        for await (const message2 of this.options.messageStream) {
+          const deserialized = await this.options.deserializer(message2);
           if (deserialized === void 0)
             continue;
           yield deserialized;
@@ -8398,8 +8398,8 @@ function getUnmarshalledStream(source, options) {
   return {
     [Symbol.asyncIterator]: async function* () {
       for await (const chunk of source) {
-        const message = options.eventStreamCodec.decode(chunk);
-        const type = await messageUnmarshaller(message);
+        const message2 = options.eventStreamCodec.decode(chunk);
+        const type = await messageUnmarshaller(message2);
         if (type === void 0)
           continue;
         yield type;
@@ -8408,32 +8408,32 @@ function getUnmarshalledStream(source, options) {
   };
 }
 function getMessageUnmarshaller(deserializer, toUtf83) {
-  return async function(message) {
-    const { value: messageType } = message.headers[":message-type"];
+  return async function(message2) {
+    const { value: messageType } = message2.headers[":message-type"];
     if (messageType === "error") {
-      const unmodeledError = new Error(message.headers[":error-message"].value || "UnknownError");
-      unmodeledError.name = message.headers[":error-code"].value;
+      const unmodeledError = new Error(message2.headers[":error-message"].value || "UnknownError");
+      unmodeledError.name = message2.headers[":error-code"].value;
       throw unmodeledError;
     } else if (messageType === "exception") {
-      const code = message.headers[":exception-type"].value;
-      const exception = { [code]: message };
+      const code = message2.headers[":exception-type"].value;
+      const exception = { [code]: message2 };
       const deserializedException = await deserializer(exception);
       if (deserializedException.$unknown) {
-        const error2 = new Error(toUtf83(message.body));
+        const error2 = new Error(toUtf83(message2.body));
         error2.name = code;
         throw error2;
       }
       throw deserializedException[code];
     } else if (messageType === "event") {
       const event = {
-        [message.headers[":event-type"].value]: message
+        [message2.headers[":event-type"].value]: message2
       };
       const deserialized = await deserializer(event);
       if (deserialized.$unknown)
         return;
       return deserialized;
     } else {
-      throw Error(`Unrecognizable event type: ${message.headers[":event-type"].value}`);
+      throw Error(`Unrecognizable event type: ${message2.headers[":event-type"].value}`);
     }
   };
 }
@@ -8763,14 +8763,14 @@ var init_EventStreamSerde = __esm({
         }
         const dataObject = hasBindings ? out : body.byteLength === 0 ? {} : await this.deserializer.read(eventStreamSchema, body);
         if (ErrCtor) {
-          const message = dataObject.message ?? dataObject.Message ?? "Unknown";
+          const message2 = dataObject.message ?? dataObject.Message ?? "Unknown";
           const metadata = {};
           const $fault = eventStreamSchema.getMergedTraits().error;
           if ($fault) {
             metadata.$fault = $fault;
           }
           return Object.assign(new ErrCtor({}), metadata, {
-            message
+            message: message2
           }, dataObject);
         }
         return dataObject;
@@ -13765,7 +13765,7 @@ var init_Crc64NvmeJs = __esm({
       const sliceLength = 8;
       const tables = new Array(sliceLength);
       for (let slice = 0; slice < sliceLength; slice++) {
-        const table = new Array(512);
+        const table2 = new Array(512);
         for (let i5 = 0; i5 < 256; i5++) {
           let crc = BigInt(i5);
           for (let j5 = 0; j5 < 8 * (slice + 1); j5++) {
@@ -13775,10 +13775,10 @@ var init_Crc64NvmeJs = __esm({
               crc = crc >> 1n;
             }
           }
-          table[i5 * 2] = Number(crc >> 32n & 0xffffffffn);
-          table[i5 * 2 + 1] = Number(crc & 0xffffffffn);
+          table2[i5 * 2] = Number(crc >> 32n & 0xffffffffn);
+          table2[i5 * 2 + 1] = Number(crc & 0xffffffffn);
         }
-        tables[slice] = new Uint32Array(table);
+        tables[slice] = new Uint32Array(table2);
       }
       return tables;
     };
@@ -14337,11 +14337,11 @@ function checkContentLengthHeader() {
     const { request } = args;
     if (HttpRequest.isInstance(request)) {
       if (!(CONTENT_LENGTH_HEADER2 in request.headers) && !(DECODED_CONTENT_LENGTH_HEADER in request.headers)) {
-        const message = `Are you using a Stream of unknown length as the Body of a PutObject request? Consider using Upload instead from @aws-sdk/lib-storage.`;
+        const message2 = `Are you using a Stream of unknown length as the Body of a PutObject request? Consider using Upload instead from @aws-sdk/lib-storage.`;
         if (typeof context?.logger?.warn === "function" && !(context.logger instanceof NoOpLogger)) {
-          context.logger.warn(message);
+          context.logger.warn(message2);
         } else {
-          console.warn(message);
+          console.warn(message2);
         }
       }
     }
@@ -14540,31 +14540,31 @@ var init_S3ExpressIdentityProviderImpl = __esm({
       createSessionFn;
       cache;
       static REFRESH_WINDOW_MS = 6e4;
-      constructor(createSessionFn, cache5 = new S3ExpressIdentityCache()) {
+      constructor(createSessionFn, cache6 = new S3ExpressIdentityCache()) {
         this.createSessionFn = createSessionFn;
-        this.cache = cache5;
+        this.cache = cache6;
       }
       async getS3ExpressIdentity(awsIdentity, identityProperties) {
         const key = identityProperties.Bucket;
-        const { cache: cache5 } = this;
-        const entry = cache5.get(key);
+        const { cache: cache6 } = this;
+        const entry = cache6.get(key);
         if (entry) {
           return entry.identity.then((identity) => {
             const isExpired = (identity.expiration?.getTime() ?? 0) < Date.now();
             if (isExpired) {
-              return cache5.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
+              return cache6.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
             }
             const isExpiringSoon = (identity.expiration?.getTime() ?? 0) < Date.now() + _S3ExpressIdentityProviderImpl.REFRESH_WINDOW_MS;
             if (isExpiringSoon && !entry.isRefreshing) {
               entry.isRefreshing = true;
               this.getIdentity(key).then((id) => {
-                cache5.set(key, new S3ExpressIdentityCacheEntry(Promise.resolve(id)));
+                cache6.set(key, new S3ExpressIdentityCacheEntry(Promise.resolve(id)));
               });
             }
             return identity;
           });
         }
-        return cache5.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
+        return cache6.set(key, new S3ExpressIdentityCacheEntry(this.getIdentity(key))).identity;
       }
       async getIdentity(key) {
         await this.cache.purgeExpired().catch((error2) => {
@@ -14930,7 +14930,7 @@ ${toHex2(hashedRequest)}`;
     var cacheQueue = [];
     var createScope = (shortDate, region, service) => `${shortDate}/${region}/${service}/${KEY_TYPE_IDENTIFIER}`;
     var getSigningKey = async (sha256Constructor, credentials, shortDate, region, service) => {
-      const credsHash = await hmac(sha256Constructor, credentials.secretAccessKey, credentials.accessKeyId);
+      const credsHash = await hmac2(sha256Constructor, credentials.secretAccessKey, credentials.accessKeyId);
       const cacheKey = `${shortDate}:${region}:${service}:${toHex2(credsHash)}:${credentials.sessionToken}`;
       if (cacheKey in signingKeyCache) {
         return signingKeyCache[cacheKey];
@@ -14941,7 +14941,7 @@ ${toHex2(hashedRequest)}`;
       }
       let key = `AWS4${credentials.secretAccessKey}`;
       for (const signable of [shortDate, region, service, KEY_TYPE_IDENTIFIER]) {
-        key = await hmac(sha256Constructor, key, signable);
+        key = await hmac2(sha256Constructor, key, signable);
       }
       return signingKeyCache[cacheKey] = key;
     };
@@ -14951,7 +14951,7 @@ ${toHex2(hashedRequest)}`;
         delete signingKeyCache[cacheKey];
       });
     };
-    var hmac = (ctor, secret, data) => {
+    var hmac2 = (ctor, secret, data) => {
       const hash = new ctor(secret);
       hash.update(toUint8Array2(data));
       return hash.digest();
@@ -15746,8 +15746,8 @@ var init_ProtocolLib = __esm({
             throw this.decorateServiceException(Object.assign(new ErrorCtor({ name: errorName }), errorMetadata), dataObject);
           }
           const d5 = dataObject;
-          const message = d5?.message ?? d5?.Message ?? d5?.Error?.Message ?? d5?.Error?.message;
-          throw this.decorateServiceException(Object.assign(new Error(message), {
+          const message2 = d5?.message ?? d5?.Message ?? d5?.Error?.Message ?? d5?.Error?.message;
+          throw this.decorateServiceException(Object.assign(new Error(message2), {
             name: errorName
           }, errorMetadata), dataObject);
         }
@@ -16206,9 +16206,9 @@ var init_JsonShapeDeserializer2 = __esm({
         return this._read(schema, data);
       }
       _read(schema, value) {
-        const isObject = value !== null && typeof value === "object";
+        const isObject2 = value !== null && typeof value === "object";
         const ns = NormalizedSchema.of(schema);
-        if (isObject) {
+        if (isObject2) {
           if (ns.isStructSchema()) {
             return this._readStruct(ns, value);
           }
@@ -16285,7 +16285,7 @@ var init_JsonShapeDeserializer2 = __esm({
           return value;
         }
         if (ns.isDocumentSchema()) {
-          if (isObject) {
+          if (isObject2) {
             if (Array.isArray(value)) {
               for (let i5 = 0; i5 < value.length; ++i5) {
                 const v = value[i5];
@@ -16479,7 +16479,7 @@ var init_JsonBytesStringAdapter = __esm({
 function alloc(size) {
   return JsonBytesStringAdapter.allocUnsafe(size);
 }
-var encoder, OPEN_BRACE, CLOSE_BRACE, OPEN_BRACKET, CLOSE_BRACKET, QUOTE, COLON, COMMA, BACKSLASH, TRUE, FALSE, NULL, ESCAPE_TABLE, INITIAL_BUFFER_SIZE, JsonShapeSerializer2;
+var encoder2, OPEN_BRACE, CLOSE_BRACE, OPEN_BRACKET, CLOSE_BRACKET, QUOTE, COLON, COMMA, BACKSLASH, TRUE, FALSE, NULL, ESCAPE_TABLE, INITIAL_BUFFER_SIZE, JsonShapeSerializer2;
 var init_JsonShapeSerializer2 = __esm({
   "node_modules/.pnpm/@aws-sdk+core@3.977.9/node_modules/@aws-sdk/core/dist-es/submodules/protocols/json/codec-v2/JsonShapeSerializer2.js"() {
     init_protocols();
@@ -16487,7 +16487,7 @@ var init_JsonShapeSerializer2 = __esm({
     init_serde();
     init_ConfigurableSerdeContext();
     init_JsonBytesStringAdapter();
-    encoder = new TextEncoder();
+    encoder2 = new TextEncoder();
     OPEN_BRACE = 123;
     CLOSE_BRACE = 125;
     OPEN_BRACKET = 91;
@@ -16544,7 +16544,7 @@ var init_JsonShapeSerializer2 = __esm({
           const z = prefix.length;
           this.ensure(z);
           this.json.copyWithin(1 + z, 1, this.i);
-          encoder.encodeInto(prefix, this.json.subarray(1));
+          encoder2.encodeInto(prefix, this.json.subarray(1));
           this.i += z;
         } else {
           this.writeValue(ns, value, void 0);
@@ -16619,7 +16619,7 @@ var init_JsonShapeSerializer2 = __esm({
             const next = j5 + 1 < z ? s2.charCodeAt(j5 + 1) : 0;
             if (next >= 56320 && next <= 57343) {
               this.ensure(4);
-              const { written } = encoder.encodeInto(s2.substring(j5, j5 + 2), this.json.subarray(this.i));
+              const { written } = encoder2.encodeInto(s2.substring(j5, j5 + 2), this.json.subarray(this.i));
               this.i += written;
               ++j5;
             } else {
@@ -16656,11 +16656,11 @@ var init_JsonShapeSerializer2 = __esm({
       }
       static B64 = (() => {
         const chars2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        const table = new Uint8Array(64);
+        const table2 = new Uint8Array(64);
         for (let i5 = 0; i5 < 64; ++i5) {
-          table[i5] = chars2.charCodeAt(i5);
+          table2[i5] = chars2.charCodeAt(i5);
         }
-        return table;
+        return table2;
       })();
       writeBase64(data) {
         const b64Len = Math.ceil(data.length / 3) * 4;
@@ -16716,7 +16716,7 @@ var init_JsonShapeSerializer2 = __esm({
           return;
         }
         const ns = NormalizedSchema.of(schema);
-        const isObject = typeof value === "object";
+        const isObject2 = typeof value === "object";
         if (ns.isStringSchema()) {
           const mediaType = ns.getMergedTraits().mediaType;
           if (mediaType) {
@@ -16727,7 +16727,7 @@ var init_JsonShapeSerializer2 = __esm({
             }
           }
         }
-        if (isObject) {
+        if (isObject2) {
           if (ns.isStructSchema()) {
             this.writeStruct(ns, value);
             return;
@@ -16890,7 +16890,7 @@ var init_JsonShapeSerializer2 = __esm({
               json2 = JSON.stringify(out);
             }
             this.ensure(json2.length * 3);
-            this.i += encoder.encodeInto(json2, this.json.subarray(this.i)).written;
+            this.i += encoder2.encodeInto(json2, this.json.subarray(this.i)).written;
             return;
           }
         }
@@ -16933,7 +16933,7 @@ var init_JsonShapeSerializer2 = __esm({
               Object.assign(value, modifications);
             }
             this.ensure(json2.length * 3);
-            this.i += encoder.encodeInto(json2, this.json.subarray(this.i)).written;
+            this.i += encoder2.encodeInto(json2, this.json.subarray(this.i)).written;
             return;
           }
         }
@@ -17083,7 +17083,7 @@ var init_AwsRestJsonProtocol = __esm({
         this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = NormalizedSchema.of(errorSchema);
-        const message = dataObject.message ?? dataObject.Message ?? "UnknownError";
+        const message2 = dataObject.message ?? dataObject.Message ?? "UnknownError";
         const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor({});
         await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
@@ -17095,7 +17095,7 @@ var init_AwsRestJsonProtocol = __esm({
         }
         throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
           $fault: ns.getMergedTraits().error,
-          message
+          message: message2
         }, output), dataObject);
       }
       getDefaultContentType() {
@@ -17307,9 +17307,9 @@ var require_dist_cjs4 = __commonJS({
       parseTag() {
         const p3 = this;
         ++p3.i;
-        let tag = "";
+        let tag2 = "";
         while (p3.i < p3.z && !" 	\r\n>/".includes(p3.x[p3.i])) {
-          tag += p3.x[p3.i++];
+          tag2 += p3.x[p3.i++];
         }
         let hasAttrs = false;
         const attrs = {};
@@ -17343,7 +17343,7 @@ var require_dist_cjs4 = __commonJS({
             throw new Error("@aws-sdk XML parse error: expected > at the end of self-closing tag.");
           }
           ++p3.i;
-          return { tag, value: hasAttrs ? attrs : "" };
+          return { tag: tag2, value: hasAttrs ? attrs : "" };
         }
         if (p3.x[p3.i] !== ">") {
           throw new Error("@aws-sdk XML parse error: expected > at the end of opening tag.");
@@ -17377,22 +17377,22 @@ var require_dist_cjs4 = __commonJS({
           }
         }
         if (!p3.isNext("</")) {
-          throw new Error(`@aws-sdk XML parse error: missing closing tag </${tag}>.`);
+          throw new Error(`@aws-sdk XML parse error: missing closing tag </${tag2}>.`);
         }
         p3.i += 2;
         const closeTag = p3.readTo(">").trim();
-        if (closeTag !== tag) {
-          throw new Error(`@aws-sdk XML parse error: mismatched tags <${tag}> and </${closeTag}>.`);
+        if (closeTag !== tag2) {
+          throw new Error(`@aws-sdk XML parse error: mismatched tags <${tag2}> and </${closeTag}>.`);
         }
         if (!hasAttrs && textParts.length === 0 && !hasElementChild) {
-          return { tag, value: "" };
+          return { tag: tag2, value: "" };
         }
         if (!hasAttrs && !hasElementChild) {
           const text = textParts.length === 1 ? textParts[0] : textParts.join("");
           if (text.trim() === "" && text.includes("\n")) {
-            return { tag, value: "" };
+            return { tag: tag2, value: "" };
           }
-          return { tag, value: text };
+          return { tag: tag2, value: text };
         }
         const obj = {};
         for (const text of textParts) {
@@ -17421,7 +17421,7 @@ var require_dist_cjs4 = __commonJS({
           }
           obj[k5] = v;
         }
-        return { tag, value: obj };
+        return { tag: tag2, value: obj };
       }
       static ENTITIES = {
         amp: "&",
@@ -17894,12 +17894,12 @@ var init_AwsQueryProtocol = __esm({
         const errorIdentifier = this.loadQueryErrorCode(response, dataObject) ?? "Unknown";
         this.mixin.compose(this.compositeErrorRegistry, errorIdentifier, this.options.defaultNamespace);
         const errorData = this.loadQueryError(dataObject) ?? {};
-        const message = this.loadQueryErrorMessage(dataObject);
-        errorData.message = message;
+        const message2 = this.loadQueryErrorMessage(dataObject);
+        errorData.message = message2;
         errorData.Error = {
           Type: errorData.Type,
           Code: errorData.Code,
-          Message: message
+          Message: message2
         };
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, errorData, metadata, this.mixin.findQueryCompatibleError);
         const ns = NormalizedSchema.of(errorSchema);
@@ -17917,7 +17917,7 @@ var init_AwsQueryProtocol = __esm({
         }
         throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
           $fault: ns.getMergedTraits().error,
-          message
+          message: message2
         }, output), dataObject);
       }
       loadQueryErrorCode(output, data) {
@@ -18334,7 +18334,7 @@ var init_AwsRestXmlProtocol = __esm({
         }
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = NormalizedSchema.of(errorSchema);
-        const message = dataObject.Error?.message ?? dataObject.Error?.Message ?? dataObject.message ?? dataObject.Message ?? "UnknownError";
+        const message2 = dataObject.Error?.message ?? dataObject.Error?.Message ?? dataObject.message ?? dataObject.Message ?? "UnknownError";
         const ErrorCtor = this.compositeErrorRegistry.getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor({});
         await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
@@ -18347,7 +18347,7 @@ var init_AwsRestXmlProtocol = __esm({
         }
         throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
           $fault: ns.getMergedTraits().error,
-          message
+          message: message2
         }, output), dataObject);
       }
       getDefaultContentType() {
@@ -19627,8 +19627,8 @@ var require_dist_cjs6 = __commonJS({
     var InstanceMetadataV1FallbackError = class _InstanceMetadataV1FallbackError extends CredentialsProviderError2 {
       tryNextLink;
       name = "InstanceMetadataV1FallbackError";
-      constructor(message, tryNextLink = true) {
-        super(message, tryNextLink);
+      constructor(message2, tryNextLink = true) {
+        super(message2, tryNextLink);
         this.tryNextLink = tryNextLink;
         Object.setPrototypeOf(this, _InstanceMetadataV1FallbackError.prototype);
       }
@@ -21123,18 +21123,18 @@ var init_bdd = __esm({
 });
 
 // node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sso-oidc/endpoint/endpointResolver.js
-var cache, defaultEndpointResolver;
+var cache2, defaultEndpointResolver;
 var init_endpointResolver = __esm({
   "node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sso-oidc/endpoint/endpointResolver.js"() {
     init_client3();
     init_endpoints();
     init_bdd();
-    cache = new EndpointCache({
+    cache2 = new EndpointCache({
       size: 50,
       params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
     });
     defaultEndpointResolver = (endpointParams, context = {}) => {
-      return cache.get(endpointParams, () => decideEndpoint(bdd, {
+      return cache2.get(endpointParams, () => decideEndpoint(bdd, {
         endpointParams,
         logger: context.logger
       }));
@@ -22190,18 +22190,18 @@ var init_bdd2 = __esm({
 });
 
 // node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sso/endpoint/endpointResolver.js
-var cache2, defaultEndpointResolver2;
+var cache3, defaultEndpointResolver2;
 var init_endpointResolver2 = __esm({
   "node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sso/endpoint/endpointResolver.js"() {
     init_client3();
     init_endpoints();
     init_bdd2();
-    cache2 = new EndpointCache({
+    cache3 = new EndpointCache({
       size: 50,
       params: ["Endpoint", "Region", "UseDualStack", "UseFIPS"]
     });
     defaultEndpointResolver2 = (endpointParams, context = {}) => {
-      return cache2.get(endpointParams, () => decideEndpoint(bdd2, {
+      return cache3.get(endpointParams, () => decideEndpoint(bdd2, {
         endpointParams,
         logger: context.logger
       }));
@@ -23062,18 +23062,18 @@ var init_bdd3 = __esm({
 });
 
 // node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sts/endpoint/endpointResolver.js
-var cache3, defaultEndpointResolver3;
+var cache4, defaultEndpointResolver3;
 var init_endpointResolver3 = __esm({
   "node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/sts/endpoint/endpointResolver.js"() {
     init_client3();
     init_endpoints();
     init_bdd3();
-    cache3 = new EndpointCache({
+    cache4 = new EndpointCache({
       size: 50,
       params: ["Endpoint", "Region", "UseDualStack", "UseFIPS", "UseGlobalEndpoint"]
     });
     defaultEndpointResolver3 = (endpointParams, context = {}) => {
-      return cache3.get(endpointParams, () => decideEndpoint(bdd3, {
+      return cache4.get(endpointParams, () => decideEndpoint(bdd3, {
         endpointParams,
         logger: context.logger
       }));
@@ -24387,18 +24387,18 @@ var init_bdd4 = __esm({
 });
 
 // node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/signin/endpoint/endpointResolver.js
-var cache4, defaultEndpointResolver4;
+var cache5, defaultEndpointResolver4;
 var init_endpointResolver4 = __esm({
   "node_modules/.pnpm/@aws-sdk+nested-clients@3.997.44/node_modules/@aws-sdk/nested-clients/dist-es/submodules/signin/endpoint/endpointResolver.js"() {
     init_client3();
     init_endpoints();
     init_bdd4();
-    cache4 = new EndpointCache({
+    cache5 = new EndpointCache({
       size: 50,
       params: ["Endpoint", "IsControlPlane", "IsOAuthEndpoint", "Region", "UseDualStack", "UseFIPS"]
     });
     defaultEndpointResolver4 = (endpointParams, context = {}) => {
-      return cache4.get(endpointParams, () => decideEndpoint(bdd4, {
+      return cache5.get(endpointParams, () => decideEndpoint(bdd4, {
         endpointParams,
         logger: context.logger
       }));
@@ -25129,21 +25129,21 @@ var require_dist_cjs11 = __commonJS({
         } catch (error2) {
           if (error2.name === "AccessDeniedException") {
             const errorType = error2.error;
-            let message;
+            let message2;
             switch (errorType) {
               case "TOKEN_EXPIRED":
-                message = "Your session has expired. Please reauthenticate.";
+                message2 = "Your session has expired. Please reauthenticate.";
                 break;
               case "USER_CREDENTIALS_CHANGED":
-                message = "Unable to refresh credentials because of a change in your password. Please reauthenticate with your new password.";
+                message2 = "Unable to refresh credentials because of a change in your password. Please reauthenticate with your new password.";
                 break;
               case "INSUFFICIENT_PERMISSIONS":
-                message = "Unable to refresh credentials due to insufficient permissions. You may be missing permission for the 'CreateOAuth2Token' action.";
+                message2 = "Unable to refresh credentials due to insufficient permissions. You may be missing permission for the 'CreateOAuth2Token' action.";
                 break;
               default:
-                message = `Failed to refresh token: ${String(error2)}. Please re-authenticate using \`aws login\``;
+                message2 = `Failed to refresh token: ${String(error2)}. Please re-authenticate using \`aws login\``;
             }
-            throw new CredentialsProviderError2(message, {
+            throw new CredentialsProviderError2(message2, {
               logger: this.logger,
               tryNextLink: false
             });
@@ -25270,11 +25270,11 @@ var require_dist_cjs11 = __commonJS({
           };
           const headerB64 = Buffer.from(JSON.stringify(header)).toString("base64url");
           const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-          const message = `${headerB64}.${payloadB64}`;
-          const asn1Signature = sign3("sha256", Buffer.from(message), privateKey);
+          const message2 = `${headerB64}.${payloadB64}`;
+          const asn1Signature = sign3("sha256", Buffer.from(message2), privateKey);
           const rawSignature = this.derToRawSignature(asn1Signature);
           const signatureB64 = rawSignature.toString("base64url");
-          return `${message}.${signatureB64}`;
+          return `${message2}.${signatureB64}`;
         } catch (error2) {
           throw new CredentialsProviderError2(`Failed to generate Dpop proof: ${error2 instanceof Error ? error2.message : String(error2)}`, { logger: this.logger, tryNextLink: false });
         }
@@ -26071,8 +26071,8 @@ var init_Sha1WebCrypto = __esm({
           if (this.secret) {
             this.finished = true;
             const key = await subtle2.importKey("raw", this.secret, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
-            const sig = await subtle2.sign("HMAC", key, data);
-            return new Uint8Array(sig);
+            const sig2 = await subtle2.sign("HMAC", key, data);
+            return new Uint8Array(sig2);
           }
           const hash = await subtle2.digest("SHA-1", data);
           return new Uint8Array(hash);
@@ -28085,7 +28085,7 @@ var require_dist_cjs16 = __commonJS({
       r5 + 20
     ]);
     var bdd5 = BinaryDecisionDiagram2.from(nodes5, root5, _data5.conditions, _data5.results);
-    var cache5 = new EndpointCache2({
+    var cache6 = new EndpointCache2({
       size: 50,
       params: [
         "Accelerate",
@@ -28105,7 +28105,7 @@ var require_dist_cjs16 = __commonJS({
       ]
     });
     var defaultEndpointResolver5 = (endpointParams, context = {}) => {
-      return cache5.get(endpointParams, () => decideEndpoint2(bdd5, {
+      return cache6.get(endpointParams, () => decideEndpoint2(bdd5, {
         endpointParams,
         logger: context.logger
       }));
@@ -35987,6 +35987,8 @@ var ALLOWED_MIME_TYPES = [
 ];
 
 // netlify/functions/_lib/config.ts
+var NETLIFY_PART_BYTES = 4 * 1024 * 1024;
+var NETLIFY_MAX_FILE_BYTES = 20 * 1024 * 1024;
 var allowed = new Set(ALLOWED_MIME_TYPES);
 var images = new Set(IMAGE_MIME_TYPES);
 var videos = new Set(VIDEO_MIME_TYPES);
@@ -35994,6 +35996,9 @@ function requireEnv(name) {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Serverkonfiguration fehlt: ${name}`);
   return value;
+}
+function isProduction() {
+  return process.env.CONTEXT === "production";
 }
 
 // node_modules/.pnpm/@netlify+runtime-utils@3.0.0/node_modules/@netlify/runtime-utils/dist/main.js
@@ -36105,11 +36110,11 @@ var blobsErrorMessage = (res, context, responseBody) => {
     const storeName = context.storeName?.startsWith(SITE_STORE_PREFIX) ? context.storeName.slice(SITE_STORE_PREFIX.length) : context.storeName;
     return `Netlify Blobs could not write to store '${storeName}' (${details}). Builds and build plugins can only write to deploy-specific stores: use 'getDeployStore' instead of 'getStore', or pass a 'token' with write access to the store. If this code is not running in a build, check that the token and site ID are valid. See https://docs.netlify.com/build/data-and-storage/netlify-blobs/#deploy-specific-stores`;
   }
-  let message = `Netlify Blobs has generated an internal error (${details})`;
+  let message2 = `Netlify Blobs has generated an internal error (${details})`;
   if (!res.headers.get(NF_ERROR) && responseBody) {
-    message += `: ${responseBody}`;
+    message2 += `: ${responseBody}`;
   }
-  return message;
+  return message2;
 };
 var BlobsInternalError = class extends Error {
   constructor(res, context = {}, responseBody) {
@@ -36829,12 +36834,12 @@ function json(data, status = 200, headers = {}) {
     headers: { ...JSON_HEADERS, ...headers }
   });
 }
-function errorResponse(status, code, message) {
-  return json({ error: { code, message } }, status);
+function errorResponse(status, code, message2) {
+  return json({ error: { code, message: message2 } }, status);
 }
 var HttpError = class extends Error {
-  constructor(status, code, message) {
-    super(message);
+  constructor(status, code, message2) {
+    super(message2);
     this.status = status;
     this.code = code;
   }
@@ -36851,6 +36856,719 @@ function assertMethod(request, ...methods) {
   if (!methods.includes(request.method)) {
     throw new HttpError(405, "METHOD_NOT_ALLOWED", "Diese Anfrage ist nicht erlaubt.");
   }
+}
+
+// node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs/index.js
+var nextTick = typeof setImmediate === "function" ? setImmediate : typeof scheduler === "object" && typeof scheduler.postTask === "function" ? scheduler.postTask.bind(scheduler) : setTimeout;
+var BASE64_CODE = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split("");
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/buffer_utils.js
+var encoder = new TextEncoder();
+var decoder = new TextDecoder();
+var strictDecoder = new TextDecoder("utf-8", { fatal: true });
+var MAX_INT32 = 2 ** 32;
+function concat(...buffers) {
+  const size = buffers.reduce((acc, { length }) => acc + length, 0), buf = new Uint8Array(size);
+  let i5 = 0;
+  for (const buffer of buffers)
+    buf.set(buffer, i5), i5 += buffer.length;
+  return buf;
+}
+var NON_ASCII = /[^\x00-\x7f]/;
+function encode(string) {
+  if (typeof string == "string" && string.length >= 128) {
+    if (NON_ASCII.test(string))
+      throw new TypeError("non-ASCII string encountered in encode()");
+    return encoder.encode(string);
+  }
+  const bytes = new Uint8Array(string.length);
+  for (let i5 = 0; i5 < string.length; i5++) {
+    const code = string.charCodeAt(i5);
+    if (code > 127)
+      throw new TypeError("non-ASCII string encountered in encode()");
+    bytes[i5] = code;
+  }
+  return bytes;
+}
+function encodeBase64(input, url = false) {
+  if (Uint8Array.prototype.toBase64)
+    return input.toBase64({ alphabet: url ? "base64url" : "base64", omitPadding: url });
+  const CHUNK_SIZE = 32768, arr = [];
+  for (let i5 = 0; i5 < input.length; i5 += CHUNK_SIZE)
+    arr.push(String.fromCharCode.apply(null, input.subarray(i5, i5 + CHUNK_SIZE)));
+  const encoded = btoa(arr.join(""));
+  return url ? encoded.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_") : encoded;
+}
+function decodeBase64(encoded, url = false) {
+  if (Uint8Array.fromBase64)
+    return Uint8Array.fromBase64(encoded, { alphabet: url ? "base64url" : "base64" });
+  if (url) {
+    if (encoded.includes("+") || encoded.includes("/"))
+      throw new TypeError("Invalid base64url");
+    encoded = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  }
+  const binary = atob(encoded), bytes = new Uint8Array(binary.length);
+  for (let i5 = 0; i5 < binary.length; i5++)
+    bytes[i5] = binary.charCodeAt(i5);
+  return bytes;
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/util/errors.js
+var JOSEError = class extends Error {
+  static code = "ERR_JOSE_GENERIC";
+  code = "ERR_JOSE_GENERIC";
+  constructor(message2, options) {
+    super(message2, options), this.name = this.constructor.name, Error.captureStackTrace?.(this, this.constructor);
+  }
+};
+var JWTClaimValidationFailed = class extends JOSEError {
+  static code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+  code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+  claim;
+  reason;
+  payload;
+  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+    super(message2, { cause: { claim, reason, payload } }), this.claim = claim, this.reason = reason, this.payload = payload;
+  }
+};
+var JWTExpired = class extends JOSEError {
+  static code = "ERR_JWT_EXPIRED";
+  code = "ERR_JWT_EXPIRED";
+  claim;
+  reason;
+  payload;
+  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+    super(message2, { cause: { claim, reason, payload } }), this.claim = claim, this.reason = reason, this.payload = payload;
+  }
+};
+var JOSEAlgNotAllowed = class extends JOSEError {
+  static code = "ERR_JOSE_ALG_NOT_ALLOWED";
+  code = "ERR_JOSE_ALG_NOT_ALLOWED";
+};
+var JOSENotSupported = class extends JOSEError {
+  static code = "ERR_JOSE_NOT_SUPPORTED";
+  code = "ERR_JOSE_NOT_SUPPORTED";
+};
+var JWSInvalid = class extends JOSEError {
+  static code = "ERR_JWS_INVALID";
+  code = "ERR_JWS_INVALID";
+};
+var JWTInvalid = class extends JOSEError {
+  static code = "ERR_JWT_INVALID";
+  code = "ERR_JWT_INVALID";
+};
+var JWSSignatureVerificationFailed = class extends JOSEError {
+  static code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+  code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+  constructor(message2 = "signature verification failed", options) {
+    super(message2, options);
+  }
+};
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/util/base64url.js
+var invalid = "The input to be decoded is not correctly encoded.";
+function decode(input) {
+  try {
+    return decodeBase64(typeof input == "string" ? input : decoder.decode(input), true);
+  } catch (cause) {
+    throw new TypeError(invalid, { cause });
+  }
+}
+function encode2(input) {
+  return encodeBase64(typeof input == "string" ? encoder.encode(input) : input, true);
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/validate.js
+function isObject(input) {
+  if (typeof input != "object" || input === null || Object.prototype.toString.call(input) !== "[object Object]")
+    return false;
+  const prototype = Object.getPrototypeOf(input);
+  return prototype === null || Object.getPrototypeOf(prototype) === null;
+}
+function isDisjoint(...headers) {
+  const parameters = /* @__PURE__ */ new Set();
+  for (const header of headers)
+    if (header)
+      for (const parameter of Object.keys(header)) {
+        if (parameters.has(parameter))
+          return false;
+        parameters.add(parameter);
+      }
+  return true;
+}
+function assertNotSet(value, name) {
+  if (value !== void 0)
+    throw new TypeError(`${name} can only be called once`);
+}
+function decodeBase64url(value, label, ErrorClass) {
+  try {
+    return decode(value);
+  } catch {
+    throw new ErrorClass(`Failed to base64url decode the ${label}`);
+  }
+}
+function encodeBase64url(value, label, ErrorClass) {
+  try {
+    return encode(value);
+  } catch {
+    throw new ErrorClass(`The ${label} is not a valid base64url string`);
+  }
+}
+function parseJoseHeader(b64, ErrorClass, message2) {
+  let parsed;
+  try {
+    parsed = JSON.parse(strictDecoder.decode(decode(b64)));
+  } catch {
+    throw new ErrorClass(message2);
+  }
+  if (!isObject(parsed))
+    throw new ErrorClass(message2);
+  return parsed;
+}
+var JWS_RECOGNIZED = { __proto__: null, b64: true };
+function validateAlgorithms(option, algorithms) {
+  if (algorithms !== void 0 && (!Array.isArray(algorithms) || algorithms.some((s2) => typeof s2 != "string")))
+    throw new TypeError(`"${option}" option must be an array of strings`);
+  return algorithms === void 0 ? void 0 : new Set(algorithms);
+}
+function validateCritDuplicates(Err, protectedHeader) {
+  const { crit } = protectedHeader ?? {};
+  if (Array.isArray(crit) && new Set(crit).size !== crit.length)
+    throw new Err('"crit" (Critical) Header Parameter MUST NOT contain duplicate values');
+}
+function validateCrit(Err, recognizedDefault, recognizedOption, protectedHeader, joseHeader) {
+  if (joseHeader.crit !== void 0 && protectedHeader?.crit === void 0)
+    throw new Err('"crit" (Critical) Header Parameter MUST be integrity protected');
+  if (!protectedHeader || protectedHeader.crit === void 0)
+    return [];
+  if (!Array.isArray(protectedHeader.crit) || protectedHeader.crit.length === 0 || protectedHeader.crit.some((input) => typeof input != "string" || input.length === 0))
+    throw new Err('"crit" (Critical) Header Parameter MUST be an array of non-empty strings when present');
+  const recognized = recognizedOption === void 0 ? recognizedDefault : { __proto__: null, ...recognizedOption, ...recognizedDefault };
+  for (const parameter of protectedHeader.crit) {
+    if (!(parameter in recognized))
+      throw new JOSENotSupported(`Extension Header Parameter "${parameter}" is not recognized`);
+    if (!Object.hasOwn(joseHeader, parameter) || joseHeader[parameter] === void 0)
+      throw new Err(`Extension Header Parameter "${parameter}" is missing`);
+    if (recognized[parameter] && (!Object.hasOwn(protectedHeader, parameter) || protectedHeader[parameter] === void 0))
+      throw new Err(`Extension Header Parameter "${parameter}" MUST be integrity protected`);
+  }
+  return protectedHeader.crit;
+}
+function validateB64(protectedHeader, extensions) {
+  if (extensions.includes("b64")) {
+    const b64 = protectedHeader.b64;
+    if (typeof b64 != "boolean")
+      throw new JWSInvalid('The "b64" (base64url-encode payload) Header Parameter must be a boolean');
+    return b64;
+  }
+  return true;
+}
+function serializeJoseHeader(Err, header) {
+  let serialized, parsed;
+  try {
+    serialized = JSON.stringify(header), parsed = JSON.parse(serialized);
+  } catch (cause) {
+    throw new Err("JOSE Header is not valid JSON", { cause });
+  }
+  if (!isObject(parsed))
+    throw new Err("JOSE Header is not a JSON object");
+  return [parsed, serialized];
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/key.js
+var tag = (key) => key[Symbol.toStringTag];
+var jwkMatchesOp = (entry, key, usage) => {
+  const { alg } = entry;
+  if (key.use !== void 0) {
+    const expected = usage === "sign" || usage === "verify" ? "sig" : "enc";
+    if (key.use !== expected)
+      throw new TypeError(`Invalid key for this operation, its "use" must be "${expected}" when present`);
+  }
+  if (key.alg !== void 0 && key.alg !== alg)
+    throw new TypeError(`Invalid key for this operation, its "alg" must be "${alg}" when present`);
+  if (Array.isArray(key.key_ops)) {
+    const expectedKeyOp = usage === "encrypt" || usage === "decrypt" ? entry.ops?.[usage === "encrypt" ? 0 : 1] : usage;
+    if (expectedKeyOp && !key.key_ops.includes(expectedKeyOp))
+      throw new TypeError(`Invalid key for this operation, its "key_ops" must include "${expectedKeyOp}" when present`);
+  }
+};
+async function prepareKey(entry, key, usage) {
+  const { alg, secret } = entry, privateKey = usage === "decrypt" || usage === "sign";
+  if (secret && key instanceof Uint8Array)
+    return key;
+  let normalized, keyObject;
+  if (isObject(key)) {
+    if (normalized = normalizeJwk(key), typeof normalized.kty != "string")
+      throw invalidKeyType(alg, key, secret);
+    if (!(secret ? normalized.kty === "oct" && typeof normalized.k == "string" : normalized.kty !== "oct" && (privateKey ? normalized.kty === "AKP" && typeof normalized.priv == "string" || typeof normalized.d == "string" : normalized.d === void 0 && normalized.priv === void 0)))
+      throw new TypeError(secret ? 'JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present' : `JSON Web Key for this operation must be a ${privateKey ? "private" : "public"} JWK`);
+    if (jwkMatchesOp(entry, normalized, usage), normalized.kty === "oct")
+      return decode(normalized.k);
+    if (!Object.isFrozen(key)) {
+      const { key_ops } = key;
+      Array.isArray(key_ops) && Object.freeze(key_ops), Object.freeze(key);
+    }
+  } else {
+    if (!isKeyLike(key))
+      throw invalidKeyType(alg, key, secret);
+    const expectedType = secret ? "secret" : privateKey ? "private" : "public";
+    if (key.type !== expectedType && (secret || ["secret", "public", "private"].includes(key.type)))
+      throw new TypeError(`${tag(key)} instances must be of type "${expectedType}" for the ${alg} algorithm`);
+    if (isCryptoKey(key))
+      return key;
+    if (keyObject = key, keyObject.type === "secret")
+      return keyObject.export();
+  }
+  cache ||= /* @__PURE__ */ new WeakMap();
+  const cacheKey = key;
+  let cached = cache.get(cacheKey);
+  if (cached?.[alg])
+    return cached[alg];
+  if (cached || cache.set(cacheKey, cached = {}), keyObject && typeof keyObject.toCryptoKey == "function") {
+    const isPublic = keyObject.type === "public", crv = nist[keyObject.asymmetricKeyDetails?.namedCurve], params = entry.resolve?.({ crv, asymmetricKeyType: keyObject.asymmetricKeyType }) ?? entry.subtle;
+    return cached[alg] = keyObject.toCryptoKey(params, isPublic, entry.usages[isPublic ? 0 : 1]);
+  }
+  return normalized ??= keyObject.export({ format: "jwk" }), normalized.alg = alg, cached[alg] = await jwkToKey(entry, normalized);
+}
+var cache;
+var nist = {
+  __proto__: null,
+  prime256v1: "P-256",
+  secp384r1: "P-384",
+  secp521r1: "P-521"
+};
+var isCryptoKey = (key) => {
+  if (key?.[Symbol.toStringTag] === "CryptoKey")
+    return true;
+  try {
+    return key instanceof CryptoKey;
+  } catch {
+    return false;
+  }
+};
+var isKeyObject = (key) => key?.[Symbol.toStringTag] === "KeyObject";
+var isKeyLike = (key) => isCryptoKey(key) || isKeyObject(key);
+function message(msg, actual, ...types) {
+  if (types.length > 2) {
+    const last = types.pop();
+    msg += `one of type ${types.join(", ")}, or ${last}.`;
+  } else types.length === 2 ? msg += `one of type ${types[0]} or ${types[1]}.` : msg += `of type ${types[0]}.`;
+  return actual == null ? msg += ` Received ${actual}` : typeof actual == "function" && actual.name ? msg += ` Received function ${actual.name}` : typeof actual == "object" && actual != null && actual.constructor?.name && (msg += ` Received an instance of ${actual.constructor.name}`), msg;
+}
+function invalidKeyType(alg, actual, secret) {
+  const types = ["CryptoKey", "KeyObject", "JSON Web Key"];
+  return secret && types.push("Uint8Array"), new TypeError(message(`Key for the ${alg} algorithm must be `, actual, ...types));
+}
+var unusable = (name, prop = "algorithm.name") => new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
+function checkUsage(key, usage) {
+  if (usage && !key.usages.includes(usage))
+    throw new TypeError(`CryptoKey does not support this operation, its usages must include ${usage}.`);
+}
+function checkModulusLength(alg, key) {
+  const { modulusLength } = key.algorithm;
+  if (typeof modulusLength != "number" || modulusLength < 2048)
+    throw new TypeError(`${alg} requires key modulusLength to be 2048 bits or larger`);
+}
+function checkCryptoKey(key, expected, usage) {
+  const algorithm = key.algorithm;
+  if (algorithm.name !== expected.name)
+    throw unusable(expected.name);
+  if (expected.hash && algorithm.hash?.name !== expected.hash)
+    throw unusable(expected.hash, "algorithm.hash");
+  if (expected.namedCurve && algorithm.namedCurve !== expected.namedCurve)
+    throw unusable(expected.namedCurve, "algorithm.namedCurve");
+  if (expected.length !== void 0 && algorithm.length !== expected.length)
+    throw unusable(expected.length, "algorithm.length");
+  checkUsage(key, usage);
+}
+function snapshotJwk(jwk) {
+  return { __proto__: null, ...jwk };
+}
+function normalizeJwk(jwk) {
+  const normalized = snapshotJwk(jwk);
+  if (normalized.ext !== void 0 && typeof normalized.ext != "boolean")
+    throw new TypeError('"ext" (Extractable) Parameter must be a boolean');
+  if (normalized.key_ops !== void 0) {
+    const value = normalized.key_ops, keyOps = Array.isArray(value) ? [...value] : void 0;
+    if (!keyOps || keyOps.some((operation2) => typeof operation2 != "string") || new Set(keyOps).size !== keyOps.length)
+      throw new TypeError('"key_ops" (Key Operations) Parameter must be an array of unique strings');
+    normalized.key_ops = keyOps;
+  }
+  return normalized;
+}
+async function jwkToKey(entry, jwk, extractable) {
+  if (!entry.kty.includes(jwk.kty))
+    throw new JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+  const algorithm = entry.resolve?.({ kty: jwk.kty, crv: jwk.crv }) ?? entry.subtle, isPrivate = !!(jwk.d || jwk.priv), keyData = { ...jwk, ext: extractable ?? jwk.ext };
+  return keyData.kty !== "AKP" && delete keyData.alg, delete keyData.use, crypto.subtle.importKey("jwk", keyData, algorithm, keyData.ext ?? !isPrivate, jwk.key_ops ?? entry.usages[isPrivate ? 1 : 0]);
+}
+async function rawKey(key, expected, usage, extractable = false) {
+  return key instanceof Uint8Array && (key = await crypto.subtle.importKey("raw", key, expected, extractable, [usage])), checkCryptoKey(key, expected, usage), key;
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/key_descriptor.js
+function table(entries) {
+  const out = { __proto__: null };
+  for (const alg in entries)
+    out[alg] = { ...entries[alg], alg };
+  return out;
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_algorithms.js
+var sig = [["verify"], ["sign"]];
+function hmac(bits) {
+  const subtle3 = { name: "HMAC", hash: `SHA-${bits}` };
+  return { kty: ["oct"], secret: true, subtle: subtle3, signing: subtle3, usages: sig };
+}
+function rsa(bits, saltLength) {
+  const subtle3 = { name: saltLength ? "RSA-PSS" : "RSASSA-PKCS1-v1_5", hash: `SHA-${bits}` };
+  return {
+    kty: ["RSA"],
+    subtle: subtle3,
+    signing: saltLength ? { ...subtle3, saltLength } : subtle3,
+    usages: sig,
+    minRsaBits: 2048
+  };
+}
+function ecdsa(crv, bits) {
+  return {
+    kty: ["EC"],
+    crv,
+    subtle: { name: "ECDSA", namedCurve: crv },
+    signing: { name: "ECDSA", hash: `SHA-${bits}` },
+    usages: sig
+  };
+}
+function eddsa() {
+  const subtle3 = { name: "Ed25519" };
+  return {
+    kty: ["OKP"],
+    crv: "Ed25519",
+    subtle: subtle3,
+    signing: subtle3,
+    usages: sig
+  };
+}
+function mldsa(bits) {
+  const subtle3 = { name: `ML-DSA-${bits}` };
+  return {
+    kty: ["AKP"],
+    subtle: subtle3,
+    signing: subtle3,
+    usages: sig
+  };
+}
+var JWS = table({
+  HS256: hmac(256),
+  HS384: hmac(384),
+  HS512: hmac(512),
+  RS256: rsa(256),
+  RS384: rsa(384),
+  RS512: rsa(512),
+  PS256: rsa(256, 32),
+  PS384: rsa(384, 48),
+  PS512: rsa(512, 64),
+  ES256: ecdsa("P-256", 256),
+  ES384: ecdsa("P-384", 384),
+  ES512: ecdsa("P-521", 512),
+  EdDSA: eddsa(),
+  Ed25519: eddsa(),
+  "ML-DSA-44": mldsa(44),
+  "ML-DSA-65": mldsa(65),
+  "ML-DSA-87": mldsa(87)
+});
+function jwsAlgorithm(alg) {
+  const entry = typeof alg == "string" ? JWS[alg] : void 0;
+  if (!entry)
+    throw new JOSENotSupported(`alg ${alg} is not supported either by JOSE or your javascript runtime`);
+  return entry;
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_verify.js
+function prepareVerify(options) {
+  return [options && validateAlgorithms("algorithms", options.algorithms), options?.crit];
+}
+function parseProtectedHeader(encodedProtected) {
+  return encodedProtected === void 0 ? {} : parseJoseHeader(encodedProtected, JWSInvalid, "JWS Protected Header is invalid");
+}
+function encodeCompactUnencodedPayload(payload) {
+  try {
+    return encode(payload);
+  } catch {
+    throw new JWSInvalid("JWS Compact Serialization payload must use only ASCII characters");
+  }
+}
+async function verifySignature(jws, shared, key, encodeUnencodedPayload, parsedProtected) {
+  const { protected: encodedProtected, header, payload: inputPayload } = jws, parsedProt = parsedProtected ?? parseProtectedHeader(encodedProtected);
+  if (!isDisjoint(parsedProt, header))
+    throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
+  const joseHeader = { ...parsedProt, ...header }, b64 = validateB64(parsedProt, validateCrit(JWSInvalid, JWS_RECOGNIZED, shared[1], parsedProt, joseHeader)), { alg } = joseHeader;
+  if (typeof alg != "string" || !alg)
+    throw new JWSInvalid('JWS "alg" (Algorithm) Header Parameter missing or invalid');
+  if (shared[0] && !shared[0].has(alg))
+    throw new JOSEAlgNotAllowed('"alg" (Algorithm) Header Parameter value not allowed');
+  if (b64) {
+    if (typeof inputPayload != "string")
+      throw new JWSInvalid("JWS Payload must be a string");
+  } else if (typeof inputPayload != "string" && !(inputPayload instanceof Uint8Array))
+    throw new JWSInvalid("JWS Payload must be a string or an Uint8Array instance");
+  const signingPayload = b64 || typeof inputPayload != "string" ? inputPayload : encodeUnencodedPayload(inputPayload);
+  let resolvedKey = false;
+  typeof key == "function" && (key = await key(parsedProt, jws), resolvedKey = true);
+  const entry = jwsAlgorithm(alg), data = concat(encodedProtected !== void 0 ? encode(encodedProtected) : new Uint8Array(), encode("."), typeof signingPayload == "string" ? shared[2] ??= encodeBase64url(signingPayload, "payload", JWSInvalid) : signingPayload), signature = decodeBase64url(jws.signature, "signature", JWSInvalid), k5 = await prepareKey(entry, key, "verify"), cryptoKey = await rawKey(k5, entry.subtle, "verify");
+  entry.minRsaBits && checkModulusLength(entry.alg, cryptoKey);
+  let verified = false;
+  try {
+    verified = await crypto.subtle.verify(entry.signing, cryptoKey, signature, data);
+  } catch {
+  }
+  if (!verified)
+    throw new JWSSignatureVerificationFailed();
+  const result = { payload: typeof signingPayload == "string" ? decodeBase64url(signingPayload, "payload", JWSInvalid) : signingPayload };
+  return encodedProtected !== void 0 && (result.protectedHeader = parsedProt), header !== void 0 && (result.unprotectedHeader = header), resolvedKey ? [{ ...result, key: k5 }, b64] : [result, b64];
+}
+async function verifyCompact(jws, shared, key) {
+  if (jws instanceof Uint8Array && (jws = decoder.decode(jws)), typeof jws != "string")
+    throw new JWSInvalid("Compact JWS must be a string or Uint8Array");
+  const { 0: protectedHeader, 1: payload, 2: signature, length } = jws.split(".");
+  if (length !== 3)
+    throw new JWSInvalid("Invalid Compact JWS");
+  return verifySignature({ payload, protected: protectedHeader, signature }, shared, key, encodeCompactUnencodedPayload);
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jwt_claims_set.js
+var epoch = (date2) => Math.floor(date2.getTime() / 1e3);
+var multipliers = {
+  s: 1,
+  m: 60,
+  h: 3600,
+  d: 86400,
+  w: 604800,
+  y: 31557600
+};
+var REGEX = /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
+var checkFailed = "check_failed";
+function invalidDuration() {
+  throw new TypeError("Invalid time period format");
+}
+function secs(str) {
+  typeof str != "string" && invalidDuration();
+  const matched = REGEX.exec(str);
+  (!matched || matched[4] && matched[1]) && invalidDuration();
+  const value = parseFloat(matched[2]), numericDate2 = Math.round(value * multipliers[matched[3][0].toLowerCase()]);
+  return Number.isFinite(numericDate2) || invalidDuration(), matched[1] === "-" || matched[4] === "ago" ? -numericDate2 : numericDate2;
+}
+function validateInput(label, input) {
+  if (!Number.isFinite(input))
+    throw new TypeError(`Invalid ${label} input`);
+  return input;
+}
+function validateStringClaim(claim, value) {
+  if (typeof value != "string")
+    throw new TypeError(`"${claim}" claim must be a string`);
+}
+function validateAudienceClaim(value) {
+  if (typeof value != "string" && (!Array.isArray(value) || Array.from(value).some((member2) => typeof member2 != "string")))
+    throw new TypeError('"aud" claim must be a string or an array of strings');
+}
+function numericDate(value, label) {
+  return typeof value == "number" ? validateInput(label, value) : value instanceof Date ? validateInput(label, epoch(value)) : epoch(/* @__PURE__ */ new Date()) + secs(value);
+}
+var normalizeTyp = (value) => {
+  const normalized = value.toLowerCase();
+  return value.includes("/") ? normalized : `application/${normalized}`;
+};
+var checkAudiencePresence = (audPayload, audOption) => typeof audPayload == "string" ? audOption.includes(audPayload) : Array.isArray(audPayload) ? audOption.some((aud) => audPayload.includes(aud)) : false;
+function validateNumericDate(payload, claim, required = false) {
+  const value = payload[claim];
+  if (!(value === void 0 && !required)) {
+    if (typeof value != "number")
+      throw new JWTClaimValidationFailed(`"${claim}" claim must be a number`, payload, claim, "invalid");
+    return value;
+  }
+}
+function unexpectedClaim(payload, claim) {
+  throw new JWTClaimValidationFailed(`unexpected "${claim}" claim value`, payload, claim, checkFailed);
+}
+function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
+  let payload;
+  try {
+    payload = JSON.parse(strictDecoder.decode(encodedPayload));
+  } catch {
+  }
+  if (!isObject(payload))
+    throw new JWTInvalid("JWT Claims Set must be a top-level JSON object");
+  const { typ } = options;
+  if (typ !== void 0 && (typeof protectedHeader.typ != "string" || normalizeTyp(protectedHeader.typ) !== normalizeTyp(typ)))
+    throw new JWTClaimValidationFailed('unexpected "typ" JWT header value', payload, "typ", checkFailed);
+  const { requiredClaims = [], issuer, subject, audience, maxTokenAge } = options, presenceCheck = [...requiredClaims];
+  maxTokenAge !== void 0 && presenceCheck.push("iat"), audience !== void 0 && presenceCheck.push("aud"), subject !== void 0 && presenceCheck.push("sub"), issuer !== void 0 && presenceCheck.push("iss");
+  for (const claim of new Set(presenceCheck.reverse()))
+    if (!Object.hasOwn(payload, claim))
+      throw new JWTClaimValidationFailed(`missing required "${claim}" claim`, payload, claim, "missing");
+  issuer !== void 0 && !(Array.isArray(issuer) ? issuer : [issuer]).includes(payload.iss) && unexpectedClaim(payload, "iss"), subject !== void 0 && payload.sub !== subject && unexpectedClaim(payload, "sub"), audience !== void 0 && !checkAudiencePresence(payload.aud, typeof audience == "string" ? [audience] : audience) && unexpectedClaim(payload, "aud");
+  const { clockTolerance } = options;
+  let tolerance = 0;
+  if (typeof clockTolerance == "string")
+    tolerance = secs(clockTolerance);
+  else if (clockTolerance !== void 0) {
+    if (typeof clockTolerance != "number")
+      throw new TypeError("Invalid clockTolerance option type");
+    tolerance = clockTolerance;
+  }
+  validateInput("clockTolerance option", tolerance);
+  const { currentDate } = options, now = validateInput("currentDate option", epoch(currentDate === void 0 ? /* @__PURE__ */ new Date() : currentDate)), iat = validateNumericDate(payload, "iat", maxTokenAge !== void 0), nbf = validateNumericDate(payload, "nbf");
+  if (nbf !== void 0 && nbf > now + tolerance)
+    throw new JWTClaimValidationFailed('"nbf" claim timestamp check failed', payload, "nbf", checkFailed);
+  const exp = validateNumericDate(payload, "exp");
+  if (exp !== void 0 && exp <= now - tolerance)
+    throw new JWTExpired('"exp" claim timestamp check failed', payload, "exp", checkFailed);
+  if (maxTokenAge !== void 0) {
+    const age = now - iat, max = validateInput("maxTokenAge option", typeof maxTokenAge == "number" ? maxTokenAge : secs(maxTokenAge));
+    if (age - tolerance > max)
+      throw new JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", checkFailed);
+    if (age < -tolerance)
+      throw new JWTClaimValidationFailed('"iat" claim timestamp check failed (it should be in the past)', payload, "iat", checkFailed);
+  }
+  return payload;
+}
+var producerPayloads;
+function producerPayload(producer) {
+  return producerPayloads.get(producer);
+}
+function jwtData(producer) {
+  const payload = producerPayload(producer);
+  for (const claim of ["iat", "nbf", "exp"]) {
+    const value = payload[claim];
+    if (typeof value == "number" && !Number.isFinite(value))
+      throw new TypeError(`"${claim}" claim must be a finite number`);
+  }
+  return encoder.encode(JSON.stringify(payload));
+}
+var JWTClaimsBuilder = class {
+  constructor(payload = {}) {
+    if (!isObject(payload))
+      throw new TypeError("JWT Claims Set MUST be an object");
+    (producerPayloads ||= /* @__PURE__ */ new WeakMap()).set(this, structuredClone(payload));
+  }
+  setIssuer(value) {
+    return validateStringClaim("iss", value), producerPayload(this).iss = value, this;
+  }
+  setSubject(value) {
+    return validateStringClaim("sub", value), producerPayload(this).sub = value, this;
+  }
+  setAudience(value) {
+    return validateAudienceClaim(value), producerPayload(this).aud = value, this;
+  }
+  setJti(value) {
+    return validateStringClaim("jti", value), producerPayload(this).jti = value, this;
+  }
+  setNotBefore(value) {
+    return producerPayload(this).nbf = numericDate(value, "setNotBefore"), this;
+  }
+  setExpirationTime(value) {
+    return producerPayload(this).exp = numericDate(value, "setExpirationTime"), this;
+  }
+  setIssuedAt(value) {
+    const payload = producerPayload(this);
+    return value === void 0 ? payload.iat = epoch(/* @__PURE__ */ new Date()) : typeof value == "string" ? payload.iat = validateInput("setIssuedAt", epoch(/* @__PURE__ */ new Date()) + secs(value)) : payload.iat = numericDate(value, "setIssuedAt"), this;
+  }
+};
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/jwt/verify.js
+async function jwtVerify(jwt, key, options) {
+  const [verified, b64] = await verifyCompact(jwt, prepareVerify(options), key);
+  if (!b64)
+    throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
+  const payload = validateClaimsSet(verified.protectedHeader, verified.payload, options);
+  return { ...verified, payload };
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/lib/jws_sign.js
+async function createSignature(input, key, rejectUnencoded) {
+  let [payload, protectedHeader, unprotectedHeader, crit] = input, protectedHeaderString = "";
+  if (protectedHeader !== void 0) {
+    const normalized = serializeJoseHeader(JWSInvalid, protectedHeader);
+    protectedHeader = normalized[0], protectedHeaderString = encode2(normalized[1]);
+  }
+  if (unprotectedHeader !== void 0 && (unprotectedHeader = serializeJoseHeader(JWSInvalid, unprotectedHeader)[0]), !protectedHeader && !unprotectedHeader)
+    throw new JWSInvalid("either setProtectedHeader or setUnprotectedHeader must be called before #sign()");
+  if (!isDisjoint(protectedHeader, unprotectedHeader))
+    throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
+  const joseHeader = { ...protectedHeader, ...unprotectedHeader };
+  validateCritDuplicates(JWSInvalid, protectedHeader);
+  const b64 = validateB64(protectedHeader, validateCrit(JWSInvalid, JWS_RECOGNIZED, crit, protectedHeader, joseHeader));
+  b64 || rejectUnencoded?.();
+  const { alg } = joseHeader;
+  if (typeof alg != "string" || !alg)
+    throw new JWSInvalid('JWS "alg" (Algorithm) Header Parameter missing or invalid');
+  const entry = jwsAlgorithm(alg);
+  let payloadS = "", payloadB = payload, data;
+  if (b64) {
+    const encoded = input[4];
+    encoded ? (payloadS = encoded[0] ??= encode2(payload), payloadB = encoded[1] ??= encode(payloadS)) : (payloadS = encode2(payload), data = encoder.encode(`${protectedHeaderString}.${payloadS}`));
+  }
+  data ??= concat(encode(protectedHeaderString), encode("."), payloadB);
+  const k5 = await rawKey(await prepareKey(entry, key, "sign"), entry.subtle, "sign");
+  entry.minRsaBits && checkModulusLength(entry.alg, k5);
+  const jws = {
+    signature: encode2(new Uint8Array(await crypto.subtle.sign(entry.signing, k5, data))),
+    payload: payloadS
+  };
+  return protectedHeader && (jws.protected = protectedHeaderString), unprotectedHeader && (jws.header = unprotectedHeader), [jws, b64];
+}
+async function createCompactSignature(payload, protectedHeader, crit, key, rejectUnencoded) {
+  const [jws] = await createSignature([payload, protectedHeader, void 0, crit], key, rejectUnencoded);
+  return `${jws.protected}.${jws.payload}.${jws.signature}`;
+}
+
+// node_modules/.pnpm/jose@6.2.12/node_modules/jose/dist/webapi/jwt/sign.js
+var SignJWT_base = JWTClaimsBuilder;
+var SignJWT = class extends SignJWT_base {
+  #protectedHeader;
+  setProtectedHeader(protectedHeader) {
+    return assertNotSet(this.#protectedHeader, "setProtectedHeader"), this.#protectedHeader = protectedHeader, this;
+  }
+  async sign(key, options) {
+    return createCompactSignature(jwtData(this), this.#protectedHeader, options?.crit, key, () => {
+      throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
+    });
+  }
+};
+
+// netlify/functions/_lib/security.ts
+var GUEST_COOKIE = "jens_guest";
+var GUEST_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
+function secretKey() {
+  const value = requireEnv("SESSION_SECRET");
+  if (value.length < 32) throw new Error("Serverkonfiguration ung\xFCltig: SESSION_SECRET ist zu kurz.");
+  return new TextEncoder().encode(value);
+}
+function cookieValue(request, name) {
+  const cookie = request.headers.get("cookie") ?? "";
+  for (const pair of cookie.split(";")) {
+    const [key, ...value] = pair.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return null;
+}
+async function getGuestId(request) {
+  const token = cookieValue(request, GUEST_COOKIE);
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
+    return payload.scope === "guest" && typeof payload.sub === "string" && /^[0-9a-f-]{36}$/i.test(payload.sub) ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+async function getOrCreateGuest(request) {
+  const existingId = await getGuestId(request);
+  if (existingId) return { id: existingId };
+  const id = crypto.randomUUID();
+  const token = await new SignJWT({ scope: "guest" }).setProtectedHeader({ alg: "HS256" }).setSubject(id).setIssuedAt().setExpirationTime(`${GUEST_COOKIE_MAX_AGE}s`).setJti(crypto.randomUUID()).sign(secretKey());
+  const cookie = `${GUEST_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${GUEST_COOKIE_MAX_AGE}${isProduction() ? "; Secure" : ""}`;
+  return { id, cookie };
 }
 
 // netlify/functions/_lib/s3.ts
@@ -36908,13 +37626,14 @@ function decodeCursor(value) {
 var gallery_default = async (request, _context) => {
   try {
     assertMethod(request, "GET");
+    const guest = await getOrCreateGuest(request);
     const url = new URL(request.url);
     const offset = decodeCursor(url.searchParams.get("cursor"));
-    const all = (await listMedia()).sort((a5, b5) => b5.createdAt.localeCompare(a5.createdAt));
+    const all = (await listMedia()).filter((item) => item.ownerGuestId === guest.id).sort((a5, b5) => b5.createdAt.localeCompare(a5.createdAt));
     const page = all.slice(offset, offset + EVENT.galleryPageSize);
     const items = await Promise.all(page.map(async (item) => {
-      const previewUrl = item.previewKey ? await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null;
-      const viewUrl = item.kind === "video" ? await signDownload(item.originalKey, "inline", item.originalName) : previewUrl;
+      const previewUrl = item.previewKey ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=preview` : await signDownload(item.previewKey, "inline", `${item.id}.webp`) : null;
+      const viewUrl = item.kind === "video" ? item.storage === "netlify" ? `/api/media-file?id=${item.id}&asset=original` : await signDownload(item.originalKey, "inline", item.originalName) : previewUrl;
       return {
         id: item.id,
         kind: item.kind,
@@ -36931,7 +37650,10 @@ var gallery_default = async (request, _context) => {
     return json(
       { items, nextCursor: nextOffset < all.length ? Buffer.from(String(nextOffset)).toString("base64url") : null },
       200,
-      { "cache-control": "public, max-age=15, stale-while-revalidate=30" }
+      {
+        "cache-control": "private, no-store",
+        ...guest.cookie ? { "set-cookie": guest.cookie } : {}
+      }
     );
   } catch (error2) {
     return handleError(error2, "gallery");

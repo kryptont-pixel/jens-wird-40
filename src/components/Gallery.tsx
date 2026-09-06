@@ -56,12 +56,12 @@ export function Gallery({ preview = false }: { preview?: boolean }) {
   return (
     <section className={`gallery-section${preview ? " preview" : ""}`} id="galerie" aria-labelledby="gallery-title">
       <div className="section-heading">
-        <div><p className="section-kicker">Von uns allen</p><h2 id="gallery-title">Unsere Party – eure Bilder</h2><p>Frisch hochgeladen, neueste Momente zuerst.</p></div>
+        <div><p className="section-kicker">Deine Aufnahmen</p><h2 id="gallery-title">Deine Bilder vom Abend</h2><p>Hier siehst du nur die Fotos und Videos, die du mit diesem Browser hochgeladen hast.</p></div>
         {!preview && <button className="icon-text-button" type="button" onClick={() => loadFirst()}><RefreshCw aria-hidden="true" /> Aktualisieren</button>}
       </div>
       {loading && <div className="state-card"><LoaderCircle className="spin" aria-hidden="true" /><p>Die ersten Bilder werden geladen …</p></div>}
       {!loading && error && !items.length && <div className="state-card error"><Images aria-hidden="true" /><p>{error}</p><button className="button button-secondary" type="button" onClick={() => loadFirst()}>Noch einmal versuchen</button></div>}
-      {!loading && !error && !items.length && <div className="state-card"><Images aria-hidden="true" /><h3>Hier wartet Platz auf den ersten Moment.</h3><p>Die Galerie füllt sich, sobald das erste Bild hochgeladen wurde.</p><Link className="button button-primary" to="/upload">Erstes Foto hochladen</Link></div>}
+      {!loading && !error && !items.length && <div className="state-card"><Images aria-hidden="true" /><h3>Hier wartet Platz auf deinen ersten Moment.</h3><p>Deine Galerie füllt sich, sobald du ein Bild hochgeladen hast.</p><Link className="button button-primary" to="/upload">Erstes Foto hochladen</Link></div>}
       {visible.length > 0 && <div className="masonry">
         {visible.map((item, index) => <button className="gallery-card" key={item.id} type="button" onClick={() => setSelected(index)} aria-label={`${item.kind === "video" ? "Video" : "Foto"} vom ${formatDate(item.createdAt)} öffnen`}>
           {item.previewUrl ? <img src={item.previewUrl} alt="Partymoment" loading="lazy" decoding="async" width={item.width} height={item.height} /> : <div className="video-placeholder"><Play aria-hidden="true" /><span>Video ansehen</span></div>}
@@ -71,7 +71,7 @@ export function Gallery({ preview = false }: { preview?: boolean }) {
       </div>}
       {error && items.length > 0 && <p className="inline-error" role="status">{error}</p>}
       {!preview && cursor && <button className="button button-secondary load-more" type="button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? <><LoaderCircle className="spin" /> Mehr wird geladen …</> : "Mehr Momente laden"}</button>}
-      {preview && items.length > 0 && <Link className="button button-secondary load-more" to="/galerie">Alle Bilder ansehen</Link>}
+      {preview && items.length > 0 && <Link className="button button-secondary load-more" to="/galerie">Meine Bilder ansehen</Link>}
       {selected !== null && <Lightbox items={visible} index={selected} setIndex={setSelected} />}
     </section>
   );
