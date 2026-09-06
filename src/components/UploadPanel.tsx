@@ -5,7 +5,6 @@ import { EVENT, IMAGE_MIME_TYPES, VIDEO_MIME_TYPES } from "../config/event";
 import { api, ApiError, formatBytes } from "../lib/api";
 import { generatePreview, type GeneratedPreview } from "../lib/preview";
 import { putBlob } from "../lib/xhr";
-import { Turnstile } from "./Turnstile";
 
 type Status = "queued" | "preparing" | "uploading" | "finalizing" | "success" | "error" | "canceled";
 
@@ -60,8 +59,6 @@ async function retry<T>(action: (attempt: number) => Promise<T>, attempts = 3): 
 
 export function UploadPanel({ compact = false }: { compact?: boolean }) {
   const [items, setItems] = useState<UploadItem[]>([]);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const sessions = useRef(new Map<string, UploadSessionResponse>());
   const controllers = useRef(new Map<string, AbortController>());
@@ -121,8 +118,10 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
                 update(item.id, { progress: 7 + Math.round((totalLoaded / item.file.size) * 88) });
               });
             });
-            if (!result.etag) throw new Error("Der Server hat den Upload-Teil nicht bestätigt.");
-            completed.set(part.partNumber, result.etag);
+            if (session.mode !== "netlify") {
+              if (!result.etag) throw new Error("Der Server hat den Upload-Teil nicht bestätigt.");
+              completed.set(part.partNumber, result.etag);
+            }
           }
         };
         await Promise.all(Array.from({ length: Math.min(3, signed.parts.length) }, worker));
@@ -145,9 +144,8 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
   }, [update]);
 
   const startUploads = useCallback(async (onlyIds?: string[]) => {
-    const token = turnstileToken || (import.meta.env.DEV ? "test-bypass" : null);
     const candidates = items.filter((item) => (!onlyIds || onlyIds.includes(item.id)) && ["queued", "error", "canceled"].includes(item.status) && !clientError(item.file));
-    if (!candidates.length || !token) return;
+    if (!candidates.length) return;
     const prepared: Array<{ item: UploadItem; preview: GeneratedPreview | null }> = [];
     for (const item of candidates) {
       update(item.id, { status: "preparing", progress: 1, error: undefined });
@@ -162,7 +160,6 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
       const response = await api<{ uploads: UploadSessionResponse[] }>("upload-init", {
         method: "POST",
         body: JSON.stringify({
-          turnstileToken: token,
           files: prepared.map(({ item, preview }) => ({ name: item.file.name, size: item.file.size, type: item.file.type, wantsPreview: Boolean(preview) })),
         }),
       });
@@ -178,10 +175,8 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Der Upload konnte nicht gestartet werden.";
       prepared.forEach(({ item }) => update(item.id, { status: "error", error: message }));
-    } finally {
-      setTurnstileReset((value) => value + 1);
     }
-  }, [items, turnstileToken, update, uploadFile]);
+  }, [items, update, uploadFile]);
 
   const cancel = useCallback(async (item: UploadItem) => {
     controllers.current.get(item.id)?.abort();
@@ -196,7 +191,6 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
   const ready = items.some((item) => ["queued", "error", "canceled"].includes(item.status) && !clientError(item.file));
   const completionMessage = successes === 1 && items.length === 1 ? "Danke! Dein Bild ist jetzt dabei! 🎉" : successes > 0 && successes === items.length ? "Danke! Deine Bilder sind jetzt dabei! 🎉" : null;
   const acceptMime = [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES].join(",");
-  const actionToken = turnstileToken || (import.meta.env.DEV ? "test-bypass" : null);
 
   if (compact && !items.length) {
     return (
@@ -229,8 +223,8 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
           <button className="button button-secondary" type="button" onClick={() => inputRef.current?.click()}><ImagePlus aria-hidden="true" /> Dateien wählen</button>
         </div>
         <small>{netlifyStorage ? "Bilder und Videos bis 20 MB im Netlify-Testbetrieb" : "Bilder bis 50 MB · Videos bis 2 GB"}</small>
-        <input ref={cameraRef} hidden type="file" accept="image/*,video/*" capture="environment" onChange={(event) => event.target.files && addFiles(event.target.files)} />
-        <input ref={inputRef} hidden type="file" accept={acceptMime} multiple onChange={(event) => event.target.files && addFiles(event.target.files)} />
+        <input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { if (event.target.files) addFiles(event.target.files); event.currentTarget.value = ""; }} />
+        <input ref={inputRef} hidden type="file" accept={acceptMime} multiple onChange={(event) => { if (event.target.files) addFiles(event.target.files); event.currentTarget.value = ""; }} />
       </div>
 
       {items.length > 0 && <div className="upload-list" aria-live="polite">
@@ -240,7 +234,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
           <div className="file-info"><strong title={item.file.name}>{item.file.name}</strong><span>{formatBytes(item.file.size)} · {item.status === "preparing" ? "Vorschau wird erstellt" : item.status === "uploading" ? "Wird hochgeladen" : item.status === "finalizing" ? "Wird sicher gespeichert" : item.status === "success" ? "Fertig" : item.status === "canceled" ? "Abgebrochen" : item.status === "error" ? item.error : "Bereit"}</span><progress max="100" value={item.progress}>{item.progress}%</progress></div>
           <div className="file-actions">
             {["preparing", "uploading", "finalizing"].includes(item.status) && <button className="icon-button" type="button" onClick={() => cancel(item)} aria-label={`${item.file.name} abbrechen`}><X /></button>}
-            {["error", "canceled"].includes(item.status) && !clientError(item.file) && <button className="icon-button" type="button" onClick={() => startUploads([item.id])} disabled={!actionToken} aria-label={`${item.file.name} erneut versuchen`}><RefreshCw /></button>}
+            {["error", "canceled"].includes(item.status) && !clientError(item.file) && <button className="icon-button" type="button" onClick={() => startUploads([item.id])} aria-label={`${item.file.name} erneut versuchen`}><RefreshCw /></button>}
             {["queued", "error", "canceled"].includes(item.status) && <button className="icon-button" type="button" onClick={() => setItems((current) => current.filter((candidate) => candidate.id !== item.id))} aria-label={`${item.file.name} entfernen`}><Trash2 /></button>}
           </div>
         </article>)}
@@ -249,8 +243,7 @@ export function UploadPanel({ compact = false }: { compact?: boolean }) {
       {completionMessage && <div className="success-card" role="status"><Check aria-hidden="true" /><div><strong>{completionMessage}</strong><span>Die Galerie aktualisiert sich automatisch.</span></div><div><button className="button button-secondary" type="button" onClick={() => { setItems([]); sessions.current.clear(); }}>Weitere Bilder hochladen</button><Link className="button button-ghost" to="/galerie">Zur Galerie</Link></div></div>}
 
       {items.length > 0 && successes !== items.length && <div className="upload-submit">
-        <Turnstile onToken={setTurnstileToken} resetSignal={turnstileReset} />
-        <button className="button button-primary button-large" type="button" onClick={() => startUploads()} disabled={!ready || active || !actionToken}>
+        <button className="button button-primary button-large" type="button" onClick={() => startUploads()} disabled={!ready || active}>
           {active ? <><LoaderCircle className="spin" aria-hidden="true" /> Upload läuft …</> : <>Jetzt hochladen</>}
         </button>
       </div>}

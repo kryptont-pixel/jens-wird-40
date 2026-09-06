@@ -40,7 +40,7 @@ export default async (request: Request, _context: Context) => {
         "content-type": kind === "preview" ? "image/webp" : session.mimeType,
       },
     });
-    return json({ ok: true });
+    return json({ ok: true }, 200, { etag: `"netlify-${partNumber}"` });
   } catch (error) {
     return handleError(error, "upload-netlify");
   }

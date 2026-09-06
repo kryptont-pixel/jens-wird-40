@@ -15,42 +15,69 @@ function fit(width: number, height: number, max = 1600) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+function withTimeout<T>(promise: Promise<T>, message: string, milliseconds = 12_000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error(message)), milliseconds);
+    promise.then(
+      (value) => { window.clearTimeout(timeout); resolve(value); },
+      (error) => { window.clearTimeout(timeout); reject(error); },
+    );
+  });
+}
+
 async function imagePreview(file: File): Promise<GeneratedPreview> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  image.decoding = "async";
   try {
-    const size = fit(bitmap.width, bitmap.height);
+    await withTimeout(new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Bildvorschau nicht möglich."));
+      image.src = url;
+    }), "Bildvorschau hat zu lange gebraucht.");
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error("Das Bild hat keine gültige Größe.");
+    const size = fit(image.naturalWidth, image.naturalHeight);
     const canvas = document.createElement("canvas");
     canvas.width = size.width;
     canvas.height = size.height;
-    canvas.getContext("2d", { alpha: false })!.drawImage(bitmap, 0, 0, size.width, size.height);
-    return { blob: await canvasBlob(canvas), width: bitmap.width, height: bitmap.height };
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Bildvorschau nicht möglich.");
+    context.drawImage(image, 0, 0, size.width, size.height);
+    return { blob: await canvasBlob(canvas), width: image.naturalWidth, height: image.naturalHeight };
   } finally {
-    bitmap.close();
+    image.removeAttribute("src");
+    URL.revokeObjectURL(url);
   }
 }
 
 async function videoPreview(file: File): Promise<GeneratedPreview> {
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
-  video.preload = "metadata";
+  video.preload = "auto";
   video.muted = true;
   video.playsInline = true;
-  video.src = url;
   try {
-    await new Promise<void>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve();
+    await withTimeout(new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
       video.onerror = () => reject(new Error("Videovorschau nicht möglich."));
-    });
-    video.currentTime = Math.min(1, Math.max(0, video.duration / 3));
-    await new Promise<void>((resolve, reject) => {
-      video.onseeked = () => resolve();
-      video.onerror = () => reject(new Error("Videovorschau nicht möglich."));
-    });
+      video.src = url;
+    }), "Videovorschau hat zu lange gebraucht.");
+    const seekTime = Number.isFinite(video.duration) ? Math.min(1, Math.max(0, video.duration / 3)) : 0;
+    if (seekTime > 0.05) {
+      await withTimeout(new Promise<void>((resolve, reject) => {
+        video.onseeked = () => resolve();
+        video.onerror = () => reject(new Error("Videovorschau nicht möglich."));
+        video.currentTime = seekTime;
+      }), "Videovorschau hat zu lange gebraucht.");
+    }
+    if (!video.videoWidth || !video.videoHeight) throw new Error("Das Video hat keine gültige Größe.");
     const size = fit(video.videoWidth, video.videoHeight);
     const canvas = document.createElement("canvas");
     canvas.width = size.width;
     canvas.height = size.height;
-    canvas.getContext("2d", { alpha: false })!.drawImage(video, 0, 0, size.width, size.height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Videovorschau nicht möglich.");
+    context.drawImage(video, 0, 0, size.width, size.height);
     return { blob: await canvasBlob(canvas), width: video.videoWidth, height: video.videoHeight };
   } finally {
     URL.revokeObjectURL(url);

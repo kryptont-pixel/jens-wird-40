@@ -114,7 +114,6 @@ progress::-moz-progress-bar { background: linear-gradient(90deg, var(--coral), v
 .icon-button:hover { background: rgba(255,255,255,.08); }
 .icon-button svg { width: 1.1rem; }
 .upload-submit { display: grid; gap: 1rem; justify-items: stretch; margin-top: 1.5rem; }
-.turnstile { width: min(100%, 320px); min-height: 65px; }
 .config-note { margin: 0; padding: .65rem .8rem; border: 1px solid rgba(243,199,120,.2); border-radius: .7rem; color: var(--gold); font-size: .75rem; }
 .upload-legal { max-width: 48rem; margin: 1.5rem auto 0; color: #8490a1; font-size: .75rem; line-height: 1.6; text-align: center; }
 .success-card { display: grid; gap: 1rem; margin-top: 1.25rem; padding: 1.2rem; border: 1px solid rgba(96,213,157,.35); border-radius: 1.1rem; background: rgba(96,213,157,.08); }
