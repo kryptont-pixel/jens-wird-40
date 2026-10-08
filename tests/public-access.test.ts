@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../netlify/functions/_lib/data.js", () => ({
   listMedia: vi.fn(async () => []),
@@ -12,6 +12,11 @@ import gallery from "../netlify/functions/gallery.mts";
 import guestbook from "../netlify/functions/guestbook.mts";
 
 describe("Öffentliche Bereiche", () => {
+  beforeEach(() => {
+    vi.stubEnv("SESSION_SECRET", "test-only-session-secret-".repeat(2));
+    vi.stubEnv("CONTEXT", "dev");
+  });
+  afterEach(() => vi.unstubAllEnvs());
   it("lässt Gäste die Galerie lesen", async () => {
     const response = await gallery(new Request("http://localhost/api/gallery"), {} as never);
     expect(response.status).toBe(200);

@@ -36,7 +36,9 @@ export function bucket(): string {
 
 export async function signSingleUpload(key: string, contentType: string, sessionId: string) {
   assertSafeObjectKey(key);
-  const headers = { "content-type": contentType, "x-amz-meta-upload-session": sessionId, "if-none-match": "*" };
+  // Metadata is already signed into the URL. Sending it as a header as well
+  // makes Hetzner combine both values, so the upload-session check fails.
+  const headers = { "content-type": contentType, "if-none-match": "*" };
   const command = new PutObjectCommand({
     Bucket: bucket(),
     Key: key,
@@ -47,8 +49,6 @@ export async function signSingleUpload(key: string, contentType: string, session
   const url = await getSignedUrl(s3Client(), command, {
     expiresIn: 10 * 60,
     signableHeaders: new Set(["content-type", "if-none-match"]),
-    // Keep the upload-session metadata in a signed header rather than the URL.
-    unhoistableHeaders: new Set(["x-amz-meta-upload-session"]),
   });
   return { url, headers, expiresIn: 600 };
 }
